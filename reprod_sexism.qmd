@@ -162,39 +162,19 @@ The models indicate that the effects of the attitudinal variables align with the
 
 # Additional Models
 
-In my analysis I have chosen to simply focus on the year 2020 from Table 1 to simplify my comparison of models.
+In my analysis, I chose to focus specifically on the 2020 data from Table 1 to simplify the comparison of the models. I fit two additional models to the original – a probit and a cloglog model on the same dependent variable and covariates.
 
-## 1. Probit / firth / cloglog
+My primary aim was to investigate whether altering the link function from logit to probit or cloglog resulted in any measurable differences in performance. This exploration was driven by an interest in understanding the comparative behavior of probit, logit, and cloglog models when applied to binary data, particularly in terms of their predictive accuracy and suitability for the dataset. Specifically, I was interested in the cloglog to anlayze instances of rare events in binary data, which I considered could be prevalent in my data set due to the small number of occurences of 1's in the
 
-```{r}
-print("hello")
-```
+## Probit: 
 
 ```{r}
 # Filter data for 2019 and fit the probit model
-t1prob1 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+t1prob2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
                livingpartner + intpol + authoritarian + ideol + 
                nativism + orgterr + pop6amz + msexism,
-             data = data[data$year == 2019, ],  # Subset the data for 2019
+             data = data[data$year == 2020, ],  # Subset the data for 2020
              family = binomial(link = "probit"))
-
-stargazer(t1m1, t1prob1,type = "text", 
-          title = "Reproduction of Predictors of Intention to Vote for Vox in 2019 and 2020",
-          dep.var.labels = "vim_vox",
-          column.labels = c("2019 Logit", "2019 Probit"),
-          out = "model_comparison.txt")
-```
-
-As expected, the logit and probit are virtually the same, though the logit performed better with a lower AIC in both years as well as a significantly higher log likelihood.
-
-## 2. Try a cloglog for rare events!!
-
-```{r}
-t1cloglog <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
-               livingpartner + intpol + authoritarian + ideol + 
-               nativism + orgterr + pop6amz + msexism,
-             data = data[data$year == 2019, ],  # Subset the data for 2019
-             family = binomial(link = "cloglog"))
 
 # Filter data for 2020 and fit the logistic regression model
 t1cloglog2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
@@ -203,36 +183,16 @@ t1cloglog2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all +
              data = data[data$year == 2020, ],  # Subset the data for 2020
              family = binomial(link = "cloglog"))
 
-stargazer(t1m1, t1cloglog, t1m2, t1cloglog2, type = "text", 
-          title = "Reproduction of Predictors of Intention to Vote for Vox in 2019 and 2020",
+stargazer(t1m2, t1prob2, t1cloglog2, type = "text", 
+          title = "Reproduction of Predictors of Intention to Vote for Vox in 2020",
           dep.var.labels = "vim_vox",
-          column.labels = c("2019 Logit", "2019 ClogLog", "2020 Logit", "2020 ClogLog"),
+          column.labels = c("2020 Logit", "2020 Probit", "2020 Cloglog"),
           out = "model_comparison.txt")
 ```
 
-## 3. Try Firth Regression 
+As shown in the table above, the original logit model outperforms both the probit and cloglog models. The logit model has the lowest AIC value, which suggests better in-sample performance. The cloglog model ranks second in terms of AIC, while the probit model ranks third for in- sample performance, however the relative difference in performance is negligible. Furthermore, the logit model achieves the highest log-likelihood value, further confirming its better performance. These results indicate that the original logit model is the most effective among the three for this dataset.
 
-```{r}
-library(logistf)
-
-# Fit Firth logistic regression for 2019
-t1firth <- logistf(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
-                   livingpartner + intpol + authoritarian + ideol + 
-                   nativism + orgterr + pop6amz + msexism,
-                 data = data[data$year == 2019, ])
-
-# Fit Firth logistic regression for 2020
-t1firth2 <- logistf(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
-                   livingpartner + intpol + authoritarian + ideol + 
-                   nativism + orgterr + pop6amz + msexism,
-                 data = data[data$year == 2020, ])
-
-```
-
-```{}
-```
-
-# Cross Validation 
+# Cross Validation
 
 ```{r}
 
@@ -299,10 +259,10 @@ stargazer(t1m1, t1simp, t1m2, t1simp2, type = "text",
 
 ```
 
-```{r}
-# library(lmtest)
-lrtest(t1m1, t1simp)
-```
+# ```{r}
+# # library(lmtest)
+# lrtest(t1m1, t1simp)
+# ```
 
 ## A correlation matrix for the DV and IVs that the original authors included in the model you are replicating
 
