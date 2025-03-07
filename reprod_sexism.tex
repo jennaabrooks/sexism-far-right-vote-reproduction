@@ -273,17 +273,29 @@ elections were tomorrow?'' The authors chose to analyze voting intention
 rather than past voting behavior to capture respondents' support for Vox
 at the exact moment of their interview. Given that Vox did not gain
 significant traction until late 2018, the analysis of voter intention is
-restricted to the 2019 and 2020 waves of the survey. This approach
-allows for a more accurate assessment of the party's appeal during its
-rise in popularity.
+restricted to the 2019 and 2020 waves of the survey.
+
+The dataset initially comprised 7,850 observations for vote intentions.
+However, after filtering the data to include only the years 2019 and
+2020, the total number of observations was reduced to 3,491. Within this
+subset, 258 observations (approximately 7.39\%) correspond to votes for
+Vox, the dependent variable of interest, while the remaining 3,233
+observations (approximately 92.61\%) represent votes for other political
+parties in Spain.
 
 \includegraphics{reprod_sexism_files/figure-pdf/unnamed-chunk-3-1.pdf}
 
 \begin{verbatim}
 
    0    1 
-7551  299 
+3491  258 
 \end{verbatim}
+
+The histogram above, which depicts intended votes for Vox (coded as 1
+for ``Yes'' and 0 for ``No''), continues to show a binary distribution,
+with a significantly higher frequency of 0s (non-Vox voters) compared to
+1s (Vox voters). This refined approach provides a more precise
+assessment of Vox's appeal during its period of rising popularity.
 
 \textbf{Plot and Distribution:}
 
@@ -448,6 +460,8 @@ a prominent role in an intention to vote for the far-right party, Vox.
 
 \section{Additional Models}\label{additional-models}
 
+\subsubsection{Different Link Functions}\label{different-link-functions}
+
 In my analysis, I chose to focus specifically on the 2020 data from
 Table 1 to simplify the comparison of the models. I fit two additional
 models to the original -- a probit and a cloglog model on the same
@@ -458,12 +472,15 @@ from logit to probit or cloglog resulted in any measurable differences
 in performance. This exploration was driven by an interest in
 understanding the comparative behavior of probit, logit, and cloglog
 models when applied to binary data, particularly in terms of their
-predictive accuracy and suitability for the dataset. Specifically, I was
-interested in the cloglog to anlayze instances of rare events in binary
-data, which I considered could be prevalent in my data set due to the
-small number of occurences of 1's in the
+predictive accuracy and suitability for the dataset.
 
-\subsection{Probit:}\label{probit}
+Specifically, I was interested in the cloglog to anlayze instances of
+rare events in binary data. Given the low frequency of ``1''s in the
+dependent variable (a vote for Vox), I hypothesized that rare events
+might be a significant feature of my dataset. By incorporating the
+cloglog, I aimed to ensure that the analysis could effectively capture
+and model the infrequent occurrences of the event of interest, providing
+a more robust evaluation of the data. \#\#\#\# Probit and ClogLog:
 
 \begin{verbatim}
 
@@ -527,6 +544,9 @@ Akaike Inf. Crit.  748.034     755.537      751.494
 Note:                       *p<0.1; **p<0.05; ***p<0.01
 \end{verbatim}
 
+\subparagraph{In Sample Comparison of
+Models}\label{in-sample-comparison-of-models}
+
 As shown in the table above, the original logit model outperforms both
 the probit and cloglog models. The logit model has the lowest AIC value,
 which suggests better in-sample performance. The cloglog model ranks
@@ -537,7 +557,32 @@ log-likelihood value, further confirming its better performance. These
 results indicate that the original logit model is the most effective
 among the three for this dataset.
 
-\section{Cross Validation}\label{cross-validation}
+\subparagraph{Out of Sample Performance: 10-Fold Cross
+Validation}\label{out-of-sample-performance-10-fold-cross-validation}
+
+There is evidence of perfect separation in my dataset.
+
+\begin{verbatim}
+Loading required package: lattice
+\end{verbatim}
+
+\begin{verbatim}
+
+Attaching package: 'caret'
+\end{verbatim}
+
+\begin{verbatim}
+The following object is masked from 'package:survival':
+
+    cluster
+\end{verbatim}
+
+\begin{verbatim}
+    Model MSE
+1   Logit  NA
+2  Probit  NA
+3 Cloglog  NA
+\end{verbatim}
 
 \subsection{2. Multiplicative
 relationship}\label{multiplicative-relationship}
@@ -615,69 +660,7 @@ Akaike Inf. Crit.  488.192                  489.932                 748.034     
 Note:                                                                    *p<0.1; **p<0.05; ***p<0.01
 \end{verbatim}
 
-\subsection{3. Simpler model}\label{simpler-model}
-
-Got rid of living with partner, income, authoritarianism
-
-\begin{verbatim}
-
-Reproduction of Predictors of Intention to Vote for Vox in 2019 and 2020
-======================================================================
-                                  Dependent variable:                 
-                  ----------------------------------------------------
-                                          vim                         
-                  2019 Logit 2019 Simpler Model 2020 Logit 2020 Simple
-                     (1)            (2)            (3)         (4)    
-----------------------------------------------------------------------
-female              0.118          0.036          -0.145     -0.150   
-                   (0.277)        (0.269)        (0.220)     (0.215)  
-                                                                      
-age                 0.004          0.002          -0.009     -0.010   
-                   (0.016)        (0.014)        (0.010)     (0.010)  
-                                                                      
-factor(edu3)2       -0.716         -0.633         0.198       0.163   
-                   (0.442)        (0.416)        (0.286)     (0.282)  
-                                                                      
-factor(edu3)3       -0.075         -0.176         0.080       0.058   
-                   (0.300)        (0.275)        (0.256)     (0.231)  
-                                                                      
-dhincome_all        -0.529                        -0.061              
-                   (0.575)                       (0.446)              
-                                                                      
-livingpartner       0.192                         0.018               
-                   (0.301)                       (0.231)              
-                                                                      
-intpol              0.634          0.538         0.915**     0.893**  
-                   (0.478)        (0.462)        (0.364)     (0.357)  
-                                                                      
-authoritarian       -0.499                        0.136               
-                   (0.540)                       (0.408)              
-                                                                      
-ideol              5.497***       5.465***       4.965***   5.118***  
-                   (0.729)        (0.700)        (0.587)     (0.569)  
-                                                                      
-nativism           2.646***       2.620***       2.280***   2.304***  
-                   (0.655)        (0.642)        (0.564)     (0.563)  
-                                                                      
-orgterr            -1.314**       -1.306**      -1.905***   -1.905*** 
-                   (0.528)        (0.515)        (0.398)     (0.396)  
-                                                                      
-pop6amz             0.894          0.666         1.418**     1.373**  
-                   (0.741)        (0.718)        (0.625)     (0.622)  
-                                                                      
-msexism            4.159***       3.935***       2.983***   2.941***  
-                   (0.749)        (0.734)        (0.583)     (0.578)  
-                                                                      
-Constant          -9.712***      -9.644***      -8.419***   -8.370*** 
-                   (1.189)        (1.099)        (0.829)     (0.801)  
-                                                                      
-----------------------------------------------------------------------
-Observations        1,651          1,741          1,972       2,008   
-Log Likelihood     -230.096       -240.352       -360.017   -363.955  
-Akaike Inf. Crit.  488.192        502.704        748.034     749.910  
-======================================================================
-Note:                                      *p<0.1; **p<0.05; ***p<0.01
-\end{verbatim}
+```
 
 \section{\texorpdfstring{\texttt{\{r\}\ \#\ \#\ library(lmtest)\ \#\ lrtest(t1m1,\ t1simp)\ \#}}{\{r\} \# \# library(lmtest) \# lrtest(t1m1, t1simp) \#}}\label{r-librarylmtest-lrtestt1m1-t1simp}
 
@@ -685,9 +668,9 @@ Note:                                      *p<0.1; **p<0.05; ***p<0.01
 authors included in the model you are
 replicating}\label{a-correlation-matrix-for-the-dv-and-ivs-that-the-original-authors-included-in-the-model-you-are-replicating}
 
-\includegraphics{reprod_sexism_files/figure-pdf/unnamed-chunk-10-1.pdf}
+\includegraphics{reprod_sexism_files/figure-pdf/unnamed-chunk-9-1.pdf}
 
-\subsection{Cross Validation}\label{cross-validation-1}
+\subsection{Cross Validation}\label{cross-validation}
 
 \subsection{Interpretive Exercise (Scenarios) for the better
 model}\label{interpretive-exercise-scenarios-for-the-better-model}

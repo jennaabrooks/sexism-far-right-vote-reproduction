@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999996 (TeX Live 2024) (preloaded format=xelatex 2025.3.3)  7 MAR 2025 13:00
+This is XeTeX, Version 3.141592653-2.6-0.999996 (TeX Live 2024) (preloaded format=xelatex 2025.3.3)  7 MAR 2025 13:43
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -894,31 +894,33 @@ File: reprod_sexism_files/figure-pdf/unnamed-chunk-4-1.pdf Graphic file (type pd
 
 [4]
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(1)/m/n' will be
-(Font)              scaled to size 7.665pt on input line 349.
+(Font)              scaled to size 7.665pt on input line 361.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(1)/m/n' will be
-(Font)              scaled to size 5.475pt on input line 349.
+(Font)              scaled to size 5.475pt on input line 361.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 10.95099pt on input line 349.
+(Font)              scaled to size 10.95099pt on input line 361.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 7.66568pt on input line 349.
+(Font)              scaled to size 7.66568pt on input line 361.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 5.4755pt on input line 349.
+(Font)              scaled to size 5.4755pt on input line 361.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 10.94882pt on input line 349.
+(Font)              scaled to size 10.94882pt on input line 361.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 7.66417pt on input line 349.
+(Font)              scaled to size 7.66417pt on input line 361.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 5.47441pt on input line 349.
+(Font)              scaled to size 5.47441pt on input line 361.
 
 
 [5]
 
-LaTeX Warning: File `images/Screenshot 2025-03-04 at 2.04.58 PM.png' not found on input line 426.
+[6]
+
+LaTeX Warning: File `images/Screenshot 2025-03-04 at 2.04.58 PM.png' not found on input line 438.
 
 ! Unable to load picture or PDF file '"images/Screenshot 2025-03-04 at 2.04.58 PM.png"'.
 <to be read again> 
                    }
-l.426 .../Screenshot 2025-03-04 at 2.04.58 PM.png}
+l.438 .../Screenshot 2025-03-04 at 2.04.58 PM.png}
                                                    
 Here is how much of TeX's memory you used:
  23391 strings out of 475785
@@ -927,6 +929,6 @@ Here is how much of TeX's memory you used:
  46055 multiletter control sequences out of 15000+600000
  565276 words of font info for 87 fonts, out of 8000000 for 9000
  36 hyphenation exceptions out of 8191
- 108i,7n,114p,10908b,541s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 108i,8n,114p,10908b,567s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on reprod_sexism.pdf (5 pages).
+Output written on reprod_sexism.pdf (6 pages).

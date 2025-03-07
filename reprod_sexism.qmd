@@ -42,7 +42,9 @@ This study specifically examines the four survey waves conducted between 2017 an
 
 ### Dependent Variable: Vote for Vox
 
-The dependent variable in this study is binary – the intention to vote for Vox, coded as 1, with all other responses, including non-responses and nonvoters, coded as 0. This measure is based on respondents' answers to the question, "Which party would you vote for if the general elections were tomorrow?" The authors chose to analyze voting intention rather than past voting behavior to capture respondents' support for Vox at the exact moment of their interview. Given that Vox did not gain significant traction until late 2018, the analysis of voter intention is restricted to the 2019 and 2020 waves of the survey. This approach allows for a more accurate assessment of the party's appeal during its rise in popularity.
+The dependent variable in this study is binary – the intention to vote for Vox, coded as 1, with all other responses, including non-responses and nonvoters, coded as 0. This measure is based on respondents' answers to the question, "Which party would you vote for if the general elections were tomorrow?" The authors chose to analyze voting intention rather than past voting behavior to capture respondents' support for Vox at the exact moment of their interview. Given that Vox did not gain significant traction until late 2018, the analysis of voter intention is restricted to the 2019 and 2020 waves of the survey.
+
+The dataset initially comprised 7,850 observations for vote intentions. However, after filtering the data to include only the years 2019 and 2020, the total number of observations was reduced to 3,491. Within this subset, 258 observations (approximately 7.39%) correspond to votes for Vox, the dependent variable of interest, while the remaining 3,233 observations (approximately 92.61%) represent votes for other political parties in Spain. 
 
 ```{r echo=FALSE}
 # Read .dta file
@@ -53,24 +55,34 @@ write.csv(data, "/Users/jennabrooks/Documents/GitHub/sexism_far_right_vote/repro
 
 ```
 
-```{r echo=FALSE}
+
+```{r}
 library(ggplot2)
-ggplot(data, aes(x = vim_vox)) +
-  geom_histogram(binwidth = 1, fill = "blue", color = "black", alpha = 0.7) +
-  scale_x_continuous(breaks = c(0, 1), labels = c("0", "1")) +
+library(dplyr)
+
+# Filter data for years 2019 and 2020
+filtered_data <- data %>%
+  filter(year %in% c(2019, 2020))
+
+# Plot histogram
+ggplot(filtered_data, aes(x = factor(vim_vox))) +
+  geom_bar(fill = "blue", color = "black", alpha = 0.7) +
+  scale_x_discrete(labels = c("0" = "No", "1" = "Yes")) +
   labs(
-    title = "Histogram of Intended Votes for Vox",
-    x = "Intended Vote for Vox (1 = Yes, 0 = No)",
+    title = "Histogram of Intended Votes for Vox (2019 & 2020)",
+    x = "Intended Vote for Vox",
     y = "Count"
   ) +
   theme_minimal() +
   theme(panel.grid = element_blank())
 
-#counts 
-table(data$vim_vox)
+# Count occurrences of vim_vox (0 vs. 1) in 2019 and 2020
+table(filtered_data$vim_vox)
 
 
 ```
+The histogram above, which depicts intended votes for Vox (coded as 1 for "Yes" and 0 for "No"), continues to show a binary distribution, with a significantly higher frequency of 0s (non-Vox voters) compared to 1s (Vox voters). This refined approach provides a more precise assessment of Vox's appeal during its period of rising popularity.
+
 
 **Plot and Distribution:**
 
@@ -161,14 +173,23 @@ stargazer(t1m1, t1m2, type = "text",
 The models indicate that the effects of the attitudinal variables align with the authors' expectations: support for Vox was positively associated with right-wing ideology, sexism, nativism, and populist attitudes (with the latter reaching statistical significance only in 2020), while it is negatively associated with attitudes favoring decentralization. Among these factors, modern sexism has the second-largest impact, surpassed only by ideological orientation. When holding all other variables constant at their observed values, individuals in the 95th percentile of the sexism scale are 8.6 percentage points (in 2019) and 9.9 percentage points (in 2020) more likely to express an intention to vote for Vox compared to those in the 5th percentile. This reiterates the authors' argument that sexism plays a prominent role in an intention to vote for the far-right party, Vox.
 
 # Additional Models
+### Different Link Functions
 
 In my analysis, I chose to focus specifically on the 2020 data from Table 1 to simplify the comparison of the models. I fit two additional models to the original – a probit and a cloglog model on the same dependent variable and covariates.
 
-My primary aim was to investigate whether altering the link function from logit to probit or cloglog resulted in any measurable differences in performance. This exploration was driven by an interest in understanding the comparative behavior of probit, logit, and cloglog models when applied to binary data, particularly in terms of their predictive accuracy and suitability for the dataset. Specifically, I was interested in the cloglog to anlayze instances of rare events in binary data, which I considered could be prevalent in my data set due to the small number of occurences of 1's in the
+My primary aim was to investigate whether altering the link function from logit to probit or cloglog resulted in any measurable differences in performance. This exploration was driven by an interest in understanding the comparative behavior of probit, logit, and cloglog models when applied to binary data, particularly in terms of their predictive accuracy and suitability for the dataset. 
 
-## Probit: 
+Specifically, I was interested in the cloglog to anlayze instances of rare events in binary data. Given the low frequency of "1"s in the dependent variable (a vote for Vox), I hypothesized that rare events might be a significant feature of my dataset. By incorporating the cloglog, I aimed to ensure that the analysis could effectively capture and model the infrequent occurrences of the event of interest, providing a more robust evaluation of the data.
+#### Probit and ClogLog: 
 
 ```{r}
+# Filter data for 2020 and fit the logistic regression model
+t1m2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+               livingpartner + intpol + authoritarian + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2020, ],  # Subset the data for 2020
+             family = binomial(link = "logit"))
+
 # Filter data for 2019 and fit the probit model
 t1prob2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
                livingpartner + intpol + authoritarian + ideol + 
@@ -189,12 +210,79 @@ stargazer(t1m2, t1prob2, t1cloglog2, type = "text",
           column.labels = c("2020 Logit", "2020 Probit", "2020 Cloglog"),
           out = "model_comparison.txt")
 ```
-
+##### In Sample Comparison of Models
 As shown in the table above, the original logit model outperforms both the probit and cloglog models. The logit model has the lowest AIC value, which suggests better in-sample performance. The cloglog model ranks second in terms of AIC, while the probit model ranks third for in- sample performance, however the relative difference in performance is negligible. Furthermore, the logit model achieves the highest log-likelihood value, further confirming its better performance. These results indicate that the original logit model is the most effective among the three for this dataset.
 
-# Cross Validation
+##### Out of Sample Performance: 10-Fold Cross Validation
+
+There is evidence of perfect separation in my dataset. 
 
 ```{r}
+library(caret)  # For creating cross-validation folds
+
+# Filter data for 2020
+data_2020 <- data[data$year == 2020, ]  
+
+# Define a function to compute MSE
+compute_mse <- function(model, test_data) {
+  preds <- predict(model, newdata = test_data, type = "response")  # Predicted probabilities
+  mse <- mean((test_data$vim_vox - preds)^2)  # Compute MSE
+  return(mse)
+}
+
+# Set number of folds
+set.seed(123)  # For reproducibility
+k <- 10
+folds <- createFolds(data_2020$vim_vox, k = k, list = TRUE)  # Create k folds
+
+# Initialize vectors to store MSEs
+mse_logit <- numeric(k)
+mse_probit <- numeric(k)
+mse_cloglog <- numeric(k)
+
+# Perform cross-validation
+for (i in 1:k) {
+  # Split data into training and test sets
+  train_data <- data_2020[-folds[[i]], ]
+  test_data <- data_2020[folds[[i]], ]
+  
+  # Fit models on training data
+  model_logit <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+                        livingpartner + intpol + authoritarian + ideol + 
+                        nativism + orgterr + pop6amz + msexism,
+                      data = train_data, family = binomial(link = "logit"))
+  
+  model_probit <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+                        livingpartner + intpol + authoritarian + ideol + 
+                        nativism + orgterr + pop6amz + msexism,
+                      data = train_data, family = binomial(link = "probit"))
+  
+  model_cloglog <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+                          livingpartner + intpol + authoritarian + ideol + 
+                          nativism + orgterr + pop6amz + msexism,
+                        data = train_data, family = binomial(link = "cloglog"))
+  
+  # Compute MSE on test data
+  mse_logit[i] <- compute_mse(model_logit, test_data)
+  mse_probit[i] <- compute_mse(model_probit, test_data)
+  mse_cloglog[i] <- compute_mse(model_cloglog, test_data)
+}
+
+# Calculate mean MSE and standard errors
+mean_mse <- c(mean(mse_logit), mean(mse_probit), mean(mse_cloglog))
+se_mse <- c(sd(mse_logit) / sqrt(k), sd(mse_probit) / sqrt(k), sd(mse_cloglog) / sqrt(k))
+
+# Find the model with the smallest MSE
+best_index <- which.min(mean_mse)
+
+# Format results: Standard error in parentheses for the best model
+mse_results <- sprintf("%.5f", mean_mse)
+mse_results[best_index] <- sprintf("%.5f (%.5f)", mean_mse[best_index], se_mse[best_index])
+
+# Print results
+model_names <- c("Logit", "Probit", "Cloglog")
+results_df <- data.frame(Model = model_names, MSE = mse_results)
+print(results_df)
 
 
 ```
@@ -229,33 +317,6 @@ stargazer(t1m1, t1mul, t1m2, t1mul2, type = "text",
           out = "model_comparison.txt")
 
 ```
-
-## 3. Simpler model
-
-Got rid of living with partner, income, authoritarianism
-
-```{r}
-
-# Filter data for 2019 and fit the logistic regression model
-t1simp <- glm(vim_vox ~ female + age + factor(edu3) + intpol + ideol + 
-               nativism + orgterr + pop6amz + msexism,
-             data = data[data$year == 2019, ],  # Subset the data for 2019
-             family = binomial(link = "logit"))
-
-
-t1simp2 <- glm(vim_vox ~ female + age + factor(edu3) + intpol + ideol + 
-               nativism + orgterr + pop6amz + msexism,
-             data = data[data$year == 2020, ],  # Subset the data for 2020
-             family = binomial(link = "logit"))
-
-stargazer(t1m1, t1simp, t1m2, t1simp2, type = "text", 
-          title = "Reproduction of Predictors of Intention to Vote for Vox in 2019 and 2020",
-          dep.var.labels = "vim_vox",
-          column.labels = c("2019 Logit", "2019 Simpler Model", "2020 Logit", "2020 Simple"),
-          out = "model_comparison.txt")
-
-
-
 
 ```
 
