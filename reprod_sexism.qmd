@@ -1,0 +1,365 @@
+---
+title: "Reproduction of 'Sexism and the far-right vote: The Individual dynamics of gender backlash by Eva Anduiza & Guillem Rico"
+author: "Jenna Brooks"
+format: pdf
+editor: visual
+execute:
+  echo: false
+---
+
+```{r echo = F}
+# Load required packages (install using `install.packages()`ibrary(tidyverse)
+library(ragg)
+library(ggridges)
+library(ggrepel)
+library(brglm2)
+library(stargazer)
+library(marginaleffects)
+library(survey)
+library(dplyr)
+library(broom)
+library(corrplot)
+library(haven)
+```
+
+# Reproduction of "Sexism and the far-right vote: The individual dynamics of gender backlash"
+
+Authors: Eva Anduiza & Guillem Rico
+
+This paper examines how sexism has played a role the electoral rise of the far-right party, Vox, in Spain. Anduiza and Rico () argue that having sexist beliefs is one of the most influential attitudinal predictors of voting for the far-right party Vox.
+
+## Original Study
+
+### Data
+
+Using panel data from Spain, collected before, during and after prominent feminist protests in 2018 and 2019, the authors assess individual changes in measures of sexism occurring in various contexts of feminist movement and the surge of far right support.
+
+The data utilized in this study is drawn from the Spanish Political Attitudes dataset (Hernández Pérez et al., 2021), a longitudinal online panel survey conducted annually. The survey uses a quota sampling method to ensure a representative sample of the Spanish adult population aged 18 to 56, with quotas based on gender, age, educational background, geographic region, and municipality size. The unit of analysis is individual voters in Spain.
+
+Observational independence could be questioned in this data set due to the longitudinal design (repeated observations) and the geographic clustering of like-minded voters in specific regions, as well as demographic factors such as age, gender, and education.
+
+This study specifically examines the four survey waves conducted between 2017 and 2020, as these waves include the modern sexism battery, which is central to the analysis. Key to the analysis was the collection of the first wave of data before the first massive feminist movement and the second wave before the rise of the far-right party Vox.
+
+### Dependent Variable: Vote for Vox
+
+The dependent variable in this study is binary – the intention to vote for Vox, coded as 1, with all other responses, including non-responses and nonvoters, coded as 0. This measure is based on respondents' answers to the question, "Which party would you vote for if the general elections were tomorrow?" The authors chose to analyze voting intention rather than past voting behavior to capture respondents' support for Vox at the exact moment of their interview. Given that Vox did not gain significant traction until late 2018, the analysis of voter intention is restricted to the 2019 and 2020 waves of the survey. This approach allows for a more accurate assessment of the party's appeal during its rise in popularity.
+
+```{r echo=FALSE}
+# Read .dta file
+data <- read_dta("~/Desktop/cleaned.dta")
+
+# Save as CSV
+write.csv(data, "/Users/jennabrooks/Documents/GitHub/sexism_far_right_vote/reproduction/cleaned.csv", row.names = FALSE)
+
+```
+
+```{r echo=FALSE}
+library(ggplot2)
+ggplot(data, aes(x = vim_vox)) +
+  geom_histogram(binwidth = 1, fill = "blue", color = "black", alpha = 0.7) +
+  scale_x_continuous(breaks = c(0, 1), labels = c("0", "1")) +
+  labs(
+    title = "Histogram of Intended Votes for Vox",
+    x = "Intended Vote for Vox (1 = Yes, 0 = No)",
+    y = "Count"
+  ) +
+  theme_minimal() +
+  theme(panel.grid = element_blank())
+
+#counts 
+table(data$vim_vox)
+
+
+```
+
+**Plot and Distribution:**
+
+The dataset comprises a total of 7,850 observations for vote intentions, of which 299 instances (approximately 3.81%) correspond to votes for Vox, the dependent variable of interest, while the remaining 7,551 observations (approximately 96.19%) represent votes for other political parties in Spain. The histogram above, which represents the intended vote for Vox (coded 1 for Yes, 0 for No), shows a binary distribution, with a higher frequency of 0s (non-Vox voters) compared to 1s (Vox voters).
+
+### Data Cleaning and Missing Data
+
+-   Income (missing values imputed from other waves)
+
+-   na.rm = True a lot for NAs
+
+-   The (.=.) part ensures that missing values (.) in the original variables are preserved in the new variables. (under modern sexism scale)
+
+```{r}
+# Load packages
+library(ggplot2)
+library(naniar)
+library(dplyr)
+
+# Select relevant variables
+vars <- c("vim_vox", "female", "age", "t1edu3", "dhincome_all", 
+          "livingpartner", "intpol", "authoritarian", "ideol", 
+          "nativism", "orgterr", "pop6amz", "msexism")
+
+# Ensure the variables are numeric (convert categorical variables as necessary)
+data_clean <- data %>%
+  mutate(across(where(is.factor), as.numeric))  # Convert factors to numeric
+all(vars %in% names(data))
+
+data_miss <- data_clean %>%
+  select(where(~ any(is.na(.))))  # Keep only columns with NAs
+
+# Generate for only variables with missing data
+gg_miss_var(data_miss) +
+  theme(
+    axis.text.y = element_text(size = 10, hjust = 1),  # Increase font size
+    axis.ticks.y = element_blank(),  # Remove unnecessary ticks
+    panel.grid.major.y = element_blank()  # Reduce grid clutter
+  )
+
+```
+
+### Other Attitudinal Factors
+
+Anduiza and Rico include a set of control variables to account for potential confounding factors leading to a vote for the far right. These factors included **General ideological identification**, measured on an 11-point left–right scale; **Authoritarianism**, assessed using a 4-item battery based on childrearing values (Feldman and Stenner 1997); **Nativism**, which evaluates attitudes toward the economic and cultural impacts of migration; **Populist attitudes**, operationalized using the framework developed by Akkerman, Mudde, and Zaslove (2014); and **Territorial preferences**, where higher values indicate stronger support for decentralization. Additionally, the model controlled for sex, age, education (middle school or less, high school/vocational training, college), whether the respondent lives with a partner, household income (a scale with 12 intervals), and a 4-point measure of interest in politics. With the exception of age (in years), all variables were recoded to run from zero to one.
+
+### Model: Table 1
+
+My analysis will be replicating Table 1 "Predictors of Intention to Vote for Vox in 2019 and 2020" (pg.487). The authors hope to achieve a descriptive analysis in this paper, assessing how sexist attitudes, alongside other factors typically associated with voting for the far-right, are associated with support for Vox.
+
+Table 1 displays the the estimates of **two cross-sectional logit models** of intended vote for the 2019 and 2020 waves, respectively:
+
+$$
+vox_{it} = sexism_{it} + other\_attitudes_{it} + controls_{it}
+$$
+
+where $i$ indexes individuals and $t$ as time (wave); $other\_attitudes_{it}$ encompasses measures of ideology, authoritarianism, nativism, territorial preferences, and populism; and the controls include sex, age, education, income, living with a partner, and interest in politics.
+
+```{r}
+
+# Filter data for 2019 and fit the logistic regression model
+t1m1 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+               livingpartner + intpol + authoritarian + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2019, ],  # Subset the data for 2019
+             family = binomial(link = "logit"))
+
+# Filter data for 2020 and fit the logistic regression model
+t1m2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+               livingpartner + intpol + authoritarian + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2020, ],  # Subset the data for 2020
+             family = binomial(link = "logit"))
+
+# Create a table for the two models without AIC, BIC, and R-squared
+stargazer(t1m1, t1m2, type = "text", 
+          title = "Reproduction of Predictors of Intention to Vote for Vox in 2019 and 2020",
+          dep.var.labels = "vim_vox",
+          column.labels = c("2019", "2020"),
+          # omit.stat = c("aic", "bic", "rsq"),  # Omit AIC, BIC, and R-squared
+          stats = c("n"),  # Only display the number of observations
+          out = "model_comparison.txt")
+
+```
+
+![**Author's Table 1 reflects the same results as my table above.**](images/Screenshot%202025-03-04%20at%202.04.58%20PM.png)
+
+The models indicate that the effects of the attitudinal variables align with the authors' expectations: support for Vox was positively associated with right-wing ideology, sexism, nativism, and populist attitudes (with the latter reaching statistical significance only in 2020), while it is negatively associated with attitudes favoring decentralization. Among these factors, modern sexism has the second-largest impact, surpassed only by ideological orientation. When holding all other variables constant at their observed values, individuals in the 95th percentile of the sexism scale are 8.6 percentage points (in 2019) and 9.9 percentage points (in 2020) more likely to express an intention to vote for Vox compared to those in the 5th percentile. This reiterates the authors' argument that sexism plays a prominent role in an intention to vote for the far-right party, Vox.
+
+# Additional Models
+
+In my analysis I have chosen to simply focus on the year 2020 from Table 1 to simplify my comparison of models.
+
+## 1. Probit / firth / cloglog
+
+```{r}
+print("hello")
+```
+
+```{r}
+# Filter data for 2019 and fit the probit model
+t1prob1 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+               livingpartner + intpol + authoritarian + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2019, ],  # Subset the data for 2019
+             family = binomial(link = "probit"))
+
+stargazer(t1m1, t1prob1,type = "text", 
+          title = "Reproduction of Predictors of Intention to Vote for Vox in 2019 and 2020",
+          dep.var.labels = "vim_vox",
+          column.labels = c("2019 Logit", "2019 Probit"),
+          out = "model_comparison.txt")
+```
+
+As expected, the logit and probit are virtually the same, though the logit performed better with a lower AIC in both years as well as a significantly higher log likelihood.
+
+## 2. Try a cloglog for rare events!!
+
+```{r}
+t1cloglog <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+               livingpartner + intpol + authoritarian + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2019, ],  # Subset the data for 2019
+             family = binomial(link = "cloglog"))
+
+# Filter data for 2020 and fit the logistic regression model
+t1cloglog2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+               livingpartner + intpol + authoritarian + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2020, ],  # Subset the data for 2020
+             family = binomial(link = "cloglog"))
+
+stargazer(t1m1, t1cloglog, t1m2, t1cloglog2, type = "text", 
+          title = "Reproduction of Predictors of Intention to Vote for Vox in 2019 and 2020",
+          dep.var.labels = "vim_vox",
+          column.labels = c("2019 Logit", "2019 ClogLog", "2020 Logit", "2020 ClogLog"),
+          out = "model_comparison.txt")
+```
+
+## 3. Try Firth Regression 
+
+```{r}
+library(logistf)
+
+# Fit Firth logistic regression for 2019
+t1firth <- logistf(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+                   livingpartner + intpol + authoritarian + ideol + 
+                   nativism + orgterr + pop6amz + msexism,
+                 data = data[data$year == 2019, ])
+
+# Fit Firth logistic regression for 2020
+t1firth2 <- logistf(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+                   livingpartner + intpol + authoritarian + ideol + 
+                   nativism + orgterr + pop6amz + msexism,
+                 data = data[data$year == 2020, ])
+
+```
+
+```{}
+```
+
+# Cross Validation 
+
+```{r}
+
+
+```
+
+## 2. Multiplicative relationship
+
+I decided to look at the multiplicative relationship between nativism and modern sexism because these beliefs tend to coincide as predictors of rightwing support. If someone is nativist but not high in msexism, they might support another party, however with both they are likely to support far right.
+
+include another predictor variable that author didn't use.
+
+try gender \* msexism - I think men are more likely to be sexist lol
+
+```{r}
+# Filter data for 2019 and fit the logistic regression model
+t1mul <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+               livingpartner + intpol + authoritarian + ideol+ 
+               orgterr + pop6amz + nativism * msexism,
+             data = data[data$year == 2019, ],  # Subset the data for 2019
+             family = binomial(link = "logit"))
+
+# Filter data for 2020 and fit the logistic regression model
+t1mul2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+               livingpartner + intpol + authoritarian + ideol + 
+               orgterr + pop6amz + nativism * msexism,
+             data = data[data$year == 2020, ],  # Subset the data for 2020
+             family = binomial(link = "logit"))
+
+stargazer(t1m1, t1mul, t1m2, t1mul2, type = "text", 
+          title = "Reproduction of Predictors of Intention to Vote for Vox in 2019 and 2020",
+          dep.var.labels = "vim_vox",
+          column.labels = c("2019 Logit", "2019 Multiplicative Nativism * Sexism", "2020 Logit", "2020 Nativism * Sexism"),
+          out = "model_comparison.txt")
+
+```
+
+## 3. Simpler model
+
+Got rid of living with partner, income, authoritarianism
+
+```{r}
+
+# Filter data for 2019 and fit the logistic regression model
+t1simp <- glm(vim_vox ~ female + age + factor(edu3) + intpol + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2019, ],  # Subset the data for 2019
+             family = binomial(link = "logit"))
+
+
+t1simp2 <- glm(vim_vox ~ female + age + factor(edu3) + intpol + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2020, ],  # Subset the data for 2020
+             family = binomial(link = "logit"))
+
+stargazer(t1m1, t1simp, t1m2, t1simp2, type = "text", 
+          title = "Reproduction of Predictors of Intention to Vote for Vox in 2019 and 2020",
+          dep.var.labels = "vim_vox",
+          column.labels = c("2019 Logit", "2019 Simpler Model", "2020 Logit", "2020 Simple"),
+          out = "model_comparison.txt")
+
+
+
+
+```
+
+```{r}
+# library(lmtest)
+lrtest(t1m1, t1simp)
+```
+
+## A correlation matrix for the DV and IVs that the original authors included in the model you are replicating
+
+```{r}
+
+
+# Compute the correlation matrix
+cor_matrix <- cor(data_clean[, vars], use = "pairwise.complete.obs", method = "pearson")
+
+# Visualize the correlation matrix using corrplot
+corrplot(cor_matrix, 
+         method = "color",   # Use color for better visualization
+         type = "full",      # Show the full matrix (including lower triangle)
+         tl.cex = 0.8,       # Adjust text label size
+         tl.col = "black",   # Color of text labels
+         addCoef.col = "white",  # Add correlation coefficients in white
+         number.cex = 0.7,   # Adjust size of numbers
+         col = colorRampPalette(c("blue", "white", "red"))(200))  # Color scale
+
+```
+
+## Cross Validation
+
+## Interpretive Exercise (Scenarios) for the better model
+
+-   explain why you chose the values you did?
+
+-   Women - more likely to vote for vox? or less? M vs. F?
+
+-   
+
+# Limitations
+
+The authors mention "We, thus, cannot rule out that Vox voters’ opinions on women’s discrimination are actually a consequence, rather than a cause, of their partisan preferences." (pg. 486)
+
+Evaluate both models and come to a conclusion based on the
+
+Use cross validation to get out of sample error for OG and your new model –\> based on what I did, my new model doesn't really add anything to the outcome
+
+not trying to overturn the author's original findings. or find a better model
+
+# Citations:
+
+Swim et al (1995) Stargazer Library
+
+# AI Appendix Statement (update this):
+
+-   I used ChatGPT LLM/AI tool in this assignment.
+
+-   I used it to help write the code for the plots.  
+
+-   I found it helpful in getting the results I was looking for and understanding the concept of a correlation matrix. Also helped with converting DTA to CSV
+
+-   Link: <https://chatgpt.com/share/67af9007-561c-800f-9f0f-367b9f306c7e>
+
+Link2: <https://chatgpt.com/share/67af908c-6de0-800f-aca5-1a1cdb82be69>
+
+Link3: <https://chatgpt.com/c/67c76a1c-e874-800d-84f0-e5ddc106c044>
+
+Link4:\
