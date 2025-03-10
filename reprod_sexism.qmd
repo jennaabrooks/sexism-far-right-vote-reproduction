@@ -44,17 +44,18 @@ This study specifically examines the four survey waves conducted between 2017 an
 
 The dependent variable in this study is binary – the intention to vote for Vox, coded as 1, with all other responses, including non-responses and nonvoters, coded as 0. This measure is based on respondents' answers to the question, "Which party would you vote for if the general elections were tomorrow?" The authors chose to analyze voting intention rather than past voting behavior to capture respondents' support for Vox at the exact moment of their interview. Given that Vox did not gain significant traction until late 2018, the analysis of voter intention is restricted to the 2019 and 2020 waves of the survey.
 
-The dataset initially comprised 7,850 observations for vote intentions. However, after filtering the data to include only the years 2019 and 2020, the total number of observations was reduced to 3,491. Within this subset, 258 observations (approximately 7.39%) correspond to votes for Vox, the dependent variable of interest, while the remaining 3,233 observations (approximately 92.61%) represent votes for other political parties in Spain. 
+The dataset initially comprised 7,850 observations for vote intentions. However, after filtering the data to include only the years 2019 and 2020, the total number of observations was reduced to 3,491. Within this subset, 258 observations (approximately 7.39%) correspond to votes for Vox, the dependent variable of interest, while the remaining 3,233 observations (approximately 92.61%) represent votes for other political parties in Spain.
 
 ```{r echo=FALSE}
-# Read .dta file
-data <- read_dta("~/Desktop/cleaned.dta")
 
-# Save as CSV
-write.csv(data, "/Users/jennabrooks/Documents/GitHub/sexism_far_right_vote/reproduction/cleaned.csv", row.names = FALSE)
+data <- read.csv("~/Documents/GitHub/sexismfarrightvote/cleaned.csv")
+
 
 ```
 
+# ```{r}
+# table(data_2020$vim_vox)
+# ```
 
 ```{r}
 library(ggplot2)
@@ -81,8 +82,8 @@ table(filtered_data$vim_vox)
 
 
 ```
-The histogram above, which depicts intended votes for Vox (coded as 1 for "Yes" and 0 for "No"), continues to show a binary distribution, with a significantly higher frequency of 0s (non-Vox voters) compared to 1s (Vox voters). This refined approach provides a more precise assessment of Vox's appeal during its period of rising popularity.
 
+The histogram above, which depicts intended votes for Vox (coded as 1 for "Yes" and 0 for "No"), continues to show a binary distribution, with a significantly higher frequency of 0s (non-Vox voters) compared to 1s (Vox voters). This refined approach provides a more precise assessment of Vox's appeal during its period of rising popularity.
 
 **Plot and Distribution:**
 
@@ -168,28 +169,21 @@ stargazer(t1m1, t1m2, type = "text",
 
 ```
 
-![**Author's Table 1 reflects the same results as my table above.**](images/Screenshot%202025-03-04%20at%202.04.58%20PM.png)
+\![**Author's Table 1 reflects the same results as my table above.**\]
 
 The models indicate that the effects of the attitudinal variables align with the authors' expectations: support for Vox was positively associated with right-wing ideology, sexism, nativism, and populist attitudes (with the latter reaching statistical significance only in 2020), while it is negatively associated with attitudes favoring decentralization. Among these factors, modern sexism has the second-largest impact, surpassed only by ideological orientation. When holding all other variables constant at their observed values, individuals in the 95th percentile of the sexism scale are 8.6 percentage points (in 2019) and 9.9 percentage points (in 2020) more likely to express an intention to vote for Vox compared to those in the 5th percentile. This reiterates the authors' argument that sexism plays a prominent role in an intention to vote for the far-right party, Vox.
 
 # Additional Models
+
 ### Different Link Functions
 
 In my analysis, I chose to focus specifically on the 2020 data from Table 1 to simplify the comparison of the models. I fit two additional models to the original – a probit and a cloglog model on the same dependent variable and covariates.
 
-My primary aim was to investigate whether altering the link function from logit to probit or cloglog resulted in any measurable differences in performance. This exploration was driven by an interest in understanding the comparative behavior of probit, logit, and cloglog models when applied to binary data, particularly in terms of their predictive accuracy and suitability for the dataset. 
+My primary aim was to investigate whether altering the link function from logit to probit or cloglog resulted in any measurable differences in performance. This exploration was driven by an interest in understanding the comparative behavior of probit, logit, and cloglog models when applied to binary data, particularly in terms of their predictive accuracy and suitability for the dataset.
 
-Specifically, I was interested in the cloglog to anlayze instances of rare events in binary data. Given the low frequency of "1"s in the dependent variable (a vote for Vox), I hypothesized that rare events might be a significant feature of my dataset. By incorporating the cloglog, I aimed to ensure that the analysis could effectively capture and model the infrequent occurrences of the event of interest, providing a more robust evaluation of the data.
-#### Probit and ClogLog: 
+Specifically, I was interested in the cloglog to anlayze instances of rare events in binary data. Given the low frequency of "1"s in the dependent variable (a vote for Vox), I hypothesized that rare events might be a significant feature of my dataset. By incorporating the cloglog, I aimed to ensure that the analysis could effectively capture and model the infrequent occurrences of the event of interest, providing a more robust evaluation of the data. \#### Probit and ClogLog:
 
 ```{r}
-# Filter data for 2020 and fit the logistic regression model
-t1m2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
-               livingpartner + intpol + authoritarian + ideol + 
-               nativism + orgterr + pop6amz + msexism,
-             data = data[data$year == 2020, ],  # Subset the data for 2020
-             family = binomial(link = "logit"))
-
 # Filter data for 2019 and fit the probit model
 t1prob2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
                livingpartner + intpol + authoritarian + ideol + 
@@ -210,12 +204,203 @@ stargazer(t1m2, t1prob2, t1cloglog2, type = "text",
           column.labels = c("2020 Logit", "2020 Probit", "2020 Cloglog"),
           out = "model_comparison.txt")
 ```
+
 ##### In Sample Comparison of Models
+
 As shown in the table above, the original logit model outperforms both the probit and cloglog models. The logit model has the lowest AIC value, which suggests better in-sample performance. The cloglog model ranks second in terms of AIC, while the probit model ranks third for in- sample performance, however the relative difference in performance is negligible. Furthermore, the logit model achieves the highest log-likelihood value, further confirming its better performance. These results indicate that the original logit model is the most effective among the three for this dataset.
+
+When testing out these models in out of sample performance in cross validation, I frequently received NA values for the MSEs. I believe this is due to the low number of 1's in my data set compared to 0's ( with 1846 0's and 162 1's in the year 2020 ) leading to perfect separation in my sample. To remediate this issue, I decided to combine the years 2019 and 2020 in my models to allow them to train on more data.
+
+#### Simpler Model
+
+```{r}
+# Load necessary libraries
+library(caret)
+
+# Assuming your dataset is named 'data' and contains the outcome variable 'vim_vox'
+
+# Filter data for 2020
+data_2020 <- data[data$year == 2020, ]
+
+# Define a function to compute MSE
+compute_mse <- function(model, test_data) {
+  preds <- predict(model, newdata = test_data, type = "response")  # Predicted probabilities
+  mse <- mean((test_data$vim_vox - preds)^2)  # Compute MSE
+  return(mse)
+}
+
+# Set number of folds
+set.seed(123)  # For reproducibility
+k <- 10  # Number of folds
+
+# Create stratified folds based on the outcome variable 'vim_vox'
+folds <- createFolds(data_2020$vim_vox, k = k, list = TRUE, returnTrain = FALSE)
+
+# Initialize vectors to store MSEs
+mse_t1simp <- numeric(k)
+mse_t1m2 <- numeric(k)
+
+# Perform cross-validation
+for (i in 1:k) {
+  # Split data into training and test sets
+  train_data <- data_2020[-folds[[i]], ]
+  test_data <- data_2020[folds[[i]], ]
+  
+  # Fit t1simp model on training data
+  model_t1simp <- glm(vim_vox ~ authoritarian + ideol + 
+                        nativism + orgterr + pop6amz + msexism,
+                      data = train_data, family = binomial(link = "logit"))
+  
+  # Fit t1m2 model on training data
+  model_t1m2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+                      livingpartner + intpol + authoritarian + ideol + 
+                      nativism + orgterr + pop6amz + msexism,
+                    data = train_data, family = binomial(link = "logit"))
+  
+  # Compute MSE on test data
+  mse_t1simp[i] <- compute_mse(model_t1simp, test_data)
+  mse_t1m2[i] <- compute_mse(model_t1m2, test_data)
+}
+
+# Calculate mean MSE and standard errors
+mean_mse_t1simp <- mean(mse_t1simp)
+mean_mse_t1m2 <- mean(mse_t1m2)
+
+se_mse_t1simp <- sd(mse_t1simp) / sqrt(k)
+se_mse_t1m2 <- sd(mse_t1m2) / sqrt(k)
+
+# Compare the two models
+cat("Mean MSE for t1simp:", mean_mse_t1simp, "(SE:", se_mse_t1simp, ")\n")
+cat("Mean MSE for t1m2:", mean_mse_t1m2, "(SE:", se_mse_t1m2, ")\n")
+
+```
+
+# Cross Validation on simple model
+
+```{r}
+# Load necessary libraries
+library(caret)
+
+
+# Define a function to compute MSE
+compute_mse <- function(model, test_data) {
+  preds <- predict(model, newdata = test_data, type = "response")  # Predicted probabilities
+  mse <- mean((test_data$outcome - preds)^2)  # Compute MSE
+  return(mse)
+}
+
+# Set number of folds
+set.seed(123)  # For reproducibility
+k <- 10  # Number of folds
+
+# Create stratified folds based on the outcome variable (e.g., 'outcome')
+folds <- createFolds(data$outcome, k = k, list = TRUE, returnTrain = FALSE)
+
+# Initialize vectors to store MSEs
+mse_t1simp <- numeric(k)
+mse_t1m2 <- numeric(k)
+
+# Perform cross-validation
+for (i in 1:k) {
+  # Split data into training and test sets
+  train_data <- data[-folds[[i]], ]
+  test_data <- data[folds[[i]], ]
+  
+  # Refit t1simp model on training data (if necessary)
+  # Assuming t1simp is a formula-based model (e.g., glm)
+  t1simp_formula <- as.formula("outcome ~ predictor1 + predictor2 + ...")  # Replace with t1simp's formula
+  model_t1simp <- glm(t1simp_formula, data = train_data, family = binomial(link = "logit"))
+  
+  # Refit t1m2 model on training data (if necessary)
+  # Assuming t1m2 is a formula-based model (e.g., glm)
+  t1m2_formula <- as.formula("outcome ~ predictor1 + predictor2 + ...")  # Replace with t1m2's formula
+  model_t1m2 <- glm(t1m2_formula, data = train_data, family = binomial(link = "logit"))
+  
+  # Compute MSE on test data
+```
+
+# I tried CV with both 2019 and 2020 data
+
+```{r}
+library(caret)  # For creating cross-validation folds
+library(dplyr)
+
+# Filter data for 2020 and 2019
+data_combo <- data %>%
+  filter(year %in% c(2019, 2020))
+
+# Define a function to compute MSE
+compute_mse <- function(model, test_data) {
+  preds <- predict(model, newdata = test_data, type = "response")  # Predicted probabilities
+  mse <- mean((test_data$vim_vox - preds)^2)  # Compute MSE
+  return(mse)
+}
+
+# Set number of folds
+set.seed(123)  # For reproducibility
+k <- 10
+
+# Create stratified folds based on the dependent variable (vim_vox)
+folds <- createFolds(data_combo$vim_vox, k = k, list = TRUE, returnTrain = FALSE)
+
+# Initialize vectors to store MSEs
+mse_logit <- numeric(k)
+mse_probit <- numeric(k)
+mse_cloglog <- numeric(k)
+
+
+
+# Perform cross-validation
+for (i in 1:k) {
+  # Split data into training and test sets
+  train_data <- data_combo[-folds[[i]], ]
+  test_data <- data_combo[folds[[i]], ]
+  
+  # Fit models on training data
+  model_logit <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+                        livingpartner + intpol + authoritarian + ideol + 
+                        nativism + orgterr + pop6amz + msexism,
+                      data = train_data, family = binomial(link = "logit"))
+  
+  model_probit <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+                        livingpartner + intpol + authoritarian + ideol + 
+                        nativism + orgterr + pop6amz + msexism,
+                      data = train_data, family = binomial(link = "probit"))
+  
+  model_cloglog <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+                          livingpartner + intpol + authoritarian + ideol + 
+                          nativism + orgterr + pop6amz + msexism,
+                        data = train_data, family = binomial(link = "cloglog"))
+  
+    # Compute MSE on test data
+  mse_logit[i] <- compute_mse(model_logit, test_data)
+  mse_probit[i] <- compute_mse(model_probit, test_data)
+  mse_cloglog[i] <- compute_mse(model_cloglog, test_data)
+}
+
+# Calculate mean MSE and standard errors
+mean_mse <- c(mean(mse_logit), mean(mse_probit), mean(mse_cloglog))
+se_mse <- c(sd(mse_logit) / sqrt(k), sd(mse_probit) / sqrt(k), sd(mse_cloglog) / sqrt(k))
+
+# Find the model with the smallest MSE
+best_index <- which.min(mean_mse)
+
+# Format results: Standard error in parentheses for the best model
+mse_results <- sprintf("%.5f", mean_mse)
+mse_results[best_index] <- sprintf("%.5f (%.5f)", mean_mse[best_index], se_mse[best_index])
+
+# Print results
+model_names <- c("Logit", "Probit", "Cloglog")
+results_df <- data.frame(Model = model_names, MSE = mse_results)
+print(results_df)
+
+```
 
 ##### Out of Sample Performance: 10-Fold Cross Validation
 
-There is evidence of perfect separation in my dataset. 
+There is evidence of perfect separation in my dataset.
+
+# I tried CV with just 2020 data and stratifying the folds.
 
 ```{r}
 library(caret)  # For creating cross-validation folds
@@ -233,12 +418,16 @@ compute_mse <- function(model, test_data) {
 # Set number of folds
 set.seed(123)  # For reproducibility
 k <- 10
-folds <- createFolds(data_2020$vim_vox, k = k, list = TRUE)  # Create k folds
+
+# Create stratified folds based on the dependent variable (vim_vox)
+folds <- createFolds(data_2020$vim_vox, k = k, list = TRUE, returnTrain = FALSE)
 
 # Initialize vectors to store MSEs
 mse_logit <- numeric(k)
 mse_probit <- numeric(k)
 mse_cloglog <- numeric(k)
+
+
 
 # Perform cross-validation
 for (i in 1:k) {
@@ -262,7 +451,7 @@ for (i in 1:k) {
                           nativism + orgterr + pop6amz + msexism,
                         data = train_data, family = binomial(link = "cloglog"))
   
-  # Compute MSE on test data
+    # Compute MSE on test data
   mse_logit[i] <- compute_mse(model_logit, test_data)
   mse_probit[i] <- compute_mse(model_probit, test_data)
   mse_cloglog[i] <- compute_mse(model_cloglog, test_data)
@@ -317,13 +506,6 @@ stargazer(t1m1, t1mul, t1m2, t1mul2, type = "text",
           out = "model_comparison.txt")
 
 ```
-
-```
-
-# ```{r}
-# # library(lmtest)
-# lrtest(t1m1, t1simp)
-# ```
 
 ## A correlation matrix for the DV and IVs that the original authors included in the model you are replicating
 
