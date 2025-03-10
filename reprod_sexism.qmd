@@ -50,7 +50,6 @@ The dataset initially comprised 7,850 observations for vote intentions. However,
 
 data <- read.csv("~/Documents/GitHub/sexismfarrightvote/cleaned.csv")
 
-
 ```
 
 # ```{r}
@@ -113,8 +112,8 @@ data_clean <- data %>%
   mutate(across(where(is.factor), as.numeric))  # Convert factors to numeric
 all(vars %in% names(data))
 
-data_miss <- data_clean %>%
-  select(where(~ any(is.na(.))))  # Keep only columns with NAs
+# data_miss <- data_clean %>%
+#   select(where(~ any(is.na(.))))  # Keep only columns with NAs
 
 # Generate for only variables with missing data
 gg_miss_var(data_miss) +
@@ -130,7 +129,7 @@ gg_miss_var(data_miss) +
 
 Anduiza and Rico include a set of control variables to account for potential confounding factors leading to a vote for the far right. These factors included **General ideological identification**, measured on an 11-point left–right scale; **Authoritarianism**, assessed using a 4-item battery based on childrearing values (Feldman and Stenner 1997); **Nativism**, which evaluates attitudes toward the economic and cultural impacts of migration; **Populist attitudes**, operationalized using the framework developed by Akkerman, Mudde, and Zaslove (2014); and **Territorial preferences**, where higher values indicate stronger support for decentralization. Additionally, the model controlled for sex, age, education (middle school or less, high school/vocational training, college), whether the respondent lives with a partner, household income (a scale with 12 intervals), and a 4-point measure of interest in politics. With the exception of age (in years), all variables were recoded to run from zero to one.
 
-### Model: Table 1
+### Table 1 (Replication of Original Paper)
 
 My analysis will be replicating Table 1 "Predictors of Intention to Vote for Vox in 2019 and 2020" (pg.487). The authors hope to achieve a descriptive analysis in this paper, assessing how sexist attitudes, alongside other factors typically associated with voting for the far-right, are associated with support for Vox.
 
@@ -172,6 +171,27 @@ stargazer(t1m1, t1m2, type = "text",
 \![**Author's Table 1 reflects the same results as my table above.**\]
 
 The models indicate that the effects of the attitudinal variables align with the authors' expectations: support for Vox was positively associated with right-wing ideology, sexism, nativism, and populist attitudes (with the latter reaching statistical significance only in 2020), while it is negatively associated with attitudes favoring decentralization. Among these factors, modern sexism has the second-largest impact, surpassed only by ideological orientation. When holding all other variables constant at their observed values, individuals in the 95th percentile of the sexism scale are 8.6 percentage points (in 2019) and 9.9 percentage points (in 2020) more likely to express an intention to vote for Vox compared to those in the 5th percentile. This reiterates the authors' argument that sexism plays a prominent role in an intention to vote for the far-right party, Vox.
+
+## A correlation matrix for the DV and IVs that the original authors included in the model you are replicating
+
+```{r}
+
+
+# Compute the correlation matrix
+cor_matrix <- cor(data_clean[, vars], use = "pairwise.complete.obs", method = "pearson")
+
+# Visualize the correlation matrix using corrplot
+corrplot(cor_matrix, 
+         method = "color",   # Use color for better visualization
+         type = "full",      # Show the full matrix (including lower triangle)
+         tl.cex = 0.8,       # Adjust text label size
+         tl.col = "black",   # Color of text labels
+         addCoef.col = "white",  # Add correlation coefficients in white
+         number.cex = 0.7,   # Adjust size of numbers
+         col = colorRampPalette(c("blue", "white", "red"))(200))  # Color scale
+
+```
+
 
 # Additional Models
 
@@ -278,45 +298,45 @@ cat("Mean MSE for t1m2:", mean_mse_t1m2, "(SE:", se_mse_t1m2, ")\n")
 # Cross Validation on simple model
 
 ```{r}
-# Load necessary libraries
-library(caret)
-
-
-# Define a function to compute MSE
-compute_mse <- function(model, test_data) {
-  preds <- predict(model, newdata = test_data, type = "response")  # Predicted probabilities
-  mse <- mean((test_data$outcome - preds)^2)  # Compute MSE
-  return(mse)
-}
-
-# Set number of folds
-set.seed(123)  # For reproducibility
-k <- 10  # Number of folds
-
-# Create stratified folds based on the outcome variable (e.g., 'outcome')
-folds <- createFolds(data$outcome, k = k, list = TRUE, returnTrain = FALSE)
-
-# Initialize vectors to store MSEs
-mse_t1simp <- numeric(k)
-mse_t1m2 <- numeric(k)
-
-# Perform cross-validation
-for (i in 1:k) {
-  # Split data into training and test sets
-  train_data <- data[-folds[[i]], ]
-  test_data <- data[folds[[i]], ]
-  
-  # Refit t1simp model on training data (if necessary)
-  # Assuming t1simp is a formula-based model (e.g., glm)
-  t1simp_formula <- as.formula("outcome ~ predictor1 + predictor2 + ...")  # Replace with t1simp's formula
-  model_t1simp <- glm(t1simp_formula, data = train_data, family = binomial(link = "logit"))
-  
-  # Refit t1m2 model on training data (if necessary)
-  # Assuming t1m2 is a formula-based model (e.g., glm)
-  t1m2_formula <- as.formula("outcome ~ predictor1 + predictor2 + ...")  # Replace with t1m2's formula
-  model_t1m2 <- glm(t1m2_formula, data = train_data, family = binomial(link = "logit"))
-  
-  # Compute MSE on test data
+# # Load necessary libraries
+# library(caret)
+# 
+# 
+# # Define a function to compute MSE
+# compute_mse <- function(model, test_data) {
+#   preds <- predict(model, newdata = test_data, type = "response")  # Predicted probabilities
+#   mse <- mean((test_data$outcome - preds)^2)  # Compute MSE
+#   return(mse)
+# }
+# 
+# # Set number of folds
+# set.seed(123)  # For reproducibility
+# k <- 10  # Number of folds
+# 
+# # Create stratified folds based on the outcome variable (e.g., 'outcome')
+# folds <- createFolds(data$outcome, k = k, list = TRUE, returnTrain = FALSE)
+# 
+# # Initialize vectors to store MSEs
+# mse_t1simp <- numeric(k)
+# mse_t1m2 <- numeric(k)
+# 
+# # Perform cross-validation
+# for (i in 1:k) {
+#   # Split data into training and test sets
+#   train_data <- data[-folds[[i]], ]
+#   test_data <- data[folds[[i]], ]
+#   
+#   # Refit t1simp model on training data (if necessary)
+#   # Assuming t1simp is a formula-based model (e.g., glm)
+#   t1simp_formula <- as.formula("outcome ~ predictor1 + predictor2 + ...")  # Replace with t1simp's formula
+#   model_t1simp <- glm(t1simp_formula, data = train_data, family = binomial(link = "logit"))
+#   
+#   # Refit t1m2 model on training data (if necessary)
+#   # Assuming t1m2 is a formula-based model (e.g., glm)
+#   t1m2_formula <- as.formula("outcome ~ predictor1 + predictor2 + ...")  # Replace with t1m2's formula
+#   model_t1m2 <- glm(t1m2_formula, data = train_data, family = binomial(link = "logit"))
+#   
+#   # Compute MSE on test data
 ```
 
 # I tried CV with both 2019 and 2020 data
@@ -476,64 +496,140 @@ print(results_df)
 
 ```
 
-## 2. Multiplicative relationship
-
-I decided to look at the multiplicative relationship between nativism and modern sexism because these beliefs tend to coincide as predictors of rightwing support. If someone is nativist but not high in msexism, they might support another party, however with both they are likely to support far right.
-
-include another predictor variable that author didn't use.
-
-try gender \* msexism - I think men are more likely to be sexist lol
-
-```{r}
-# Filter data for 2019 and fit the logistic regression model
-t1mul <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
-               livingpartner + intpol + authoritarian + ideol+ 
-               orgterr + pop6amz + nativism * msexism,
-             data = data[data$year == 2019, ],  # Subset the data for 2019
-             family = binomial(link = "logit"))
-
-# Filter data for 2020 and fit the logistic regression model
-t1mul2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
-               livingpartner + intpol + authoritarian + ideol + 
-               orgterr + pop6amz + nativism * msexism,
-             data = data[data$year == 2020, ],  # Subset the data for 2020
-             family = binomial(link = "logit"))
-
-stargazer(t1m1, t1mul, t1m2, t1mul2, type = "text", 
-          title = "Reproduction of Predictors of Intention to Vote for Vox in 2019 and 2020",
-          dep.var.labels = "vim_vox",
-          column.labels = c("2019 Logit", "2019 Multiplicative Nativism * Sexism", "2020 Logit", "2020 Nativism * Sexism"),
-          out = "model_comparison.txt")
-
-```
-
-## A correlation matrix for the DV and IVs that the original authors included in the model you are replicating
-
-```{r}
-
-
-# Compute the correlation matrix
-cor_matrix <- cor(data_clean[, vars], use = "pairwise.complete.obs", method = "pearson")
-
-# Visualize the correlation matrix using corrplot
-corrplot(cor_matrix, 
-         method = "color",   # Use color for better visualization
-         type = "full",      # Show the full matrix (including lower triangle)
-         tl.cex = 0.8,       # Adjust text label size
-         tl.col = "black",   # Color of text labels
-         addCoef.col = "white",  # Add correlation coefficients in white
-         number.cex = 0.7,   # Adjust size of numbers
-         col = colorRampPalette(c("blue", "white", "red"))(200))  # Color scale
-
-```
-
 ## Cross Validation
 
-## Interpretive Exercise (Scenarios) for the better model
+## Interpretive Exercise (Scenarios)
 
--   explain why you chose the values you did?
+In the original study, the authors highlight the growing influence of sexist attitudes on election outcomes for far-right parties. While anti-feminism is not the central focus of Vox, the party has employed anti-feminist rhetoric, portraying feminists as “violent,” “radical,” and “communist,” while also denying the existence of discrimination against women(). Based on this, the authors hypothesize that increasing levels of sexism among voters may contribute to the rise of Vox in Spain.
 
--   Women - more likely to vote for vox? or less? M vs. F?
+To explore this relationship further, I examined how sexist attitudes in `msexism`, measured in the range from 0 to 1 (), influence support for Vox by constructing voter scenarios. Using the best-performing model from the original study— the logistic regression model used in the original paper—I created two voter profiles: one scoring 0.25 (lower sexism) and another scoring 0.75 (moderate to high sexism) on the modern sexism scale. This allowed me to analyze how the likelihood of voting for Vox differs between those who strongly reject versus strongly endorse sexist beliefs. The scale captures perceptions of gender equality, including beliefs about ongoing discrimination, differences in opportunities, and the legitimacy of feminist concerns, as well as attitudes toward media representations, government efforts, and policies addressing gender inequality.
+
+
+##Scenarios
+
+Scenarios - 0.25 / 0.75 I chose these values because 0 and 1 were likely to alwyas vote one way or the other, I wanted to see more moderate sexist voting behavior. 
+
+```{r}
+# Filter data for 2020 and fit the logistic regression model
+t1m2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+               livingpartner + intpol + authoritarian + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2020, ],  # Subset the data for 2020
+             family = binomial(link = "logit"))
+# Load necessary package
+
+library(MASS)
+
+# Inverse logit function
+inv.logit <- function(x) {
+  1 / (1 + exp(-x))
+}
+
+# Compute the median values for all covariates
+median_values <- data[data$year == 2020, ] %>%
+  summarise(
+    female = median(female, na.rm = TRUE),
+    age = median(age, na.rm = TRUE),
+    edu3 = as.numeric(names(which.max(table(edu3)))),
+    dhincome_all = median(dhincome_all, na.rm = TRUE),
+    livingpartner = median(livingpartner, na.rm = TRUE),
+    intpol = median(intpol, na.rm = TRUE),
+    authoritarian = median(authoritarian, na.rm = TRUE),
+    ideol = median(ideol, na.rm = TRUE),
+    nativism = median(nativism, na.rm = TRUE),
+    orgterr = median(orgterr, na.rm = TRUE),
+    pop6amz = median(pop6amz, na.rm = TRUE)
+  )
+
+# Define the range for msexism (0.25 and 0.75)
+msexism_values <- c(0.25, 0.75)
+
+# Create the scenario matrices
+# Scenario 1: msexism = 0.25
+X.lo <- c(1,                                       # intercept
+          median_values$female,                    # median female
+          median_values$age,                       # median age
+          median_values$edu3,                      # mode of edu3 (numeric)
+          median_values$dhincome_all,              # median income
+          median_values$livingpartner,             # median livingpartner
+          median_values$intpol,                    # median intpol
+          median_values$authoritarian,             # median authoritarian
+          median_values$ideol,                     # median ideol
+          median_values$nativism,                  # median nativism
+          median_values$orgterr,                   # median orgterr
+          median_values$pop6amz,                   # median pop6amz
+          0.25)                                    # msexism = 0.25
+
+X.lo <- matrix(X.lo, nrow = 13, ncol = 1)  # Ensure it's a 13x1 column vector
+
+# Scenario 2: msexism = 0.75
+X.hi <- c(1,                                       # intercept
+          median_values$female,                    # median female
+          median_values$age,                       # median age
+          median_values$edu3,                      # mode of edu3 (numeric)
+          median_values$dhincome_all,              # median income
+          median_values$livingpartner,             # median livingpartner
+          median_values$intpol,                    # median intpol
+          median_values$authoritarian,             # median authoritarian
+          median_values$ideol,                     # median ideol
+          median_values$nativism,                  # median nativism
+          median_values$orgterr,                   # median orgterr
+          median_values$pop6amz,                   # median pop6amz
+          0.75)                                    # msexism = 0.75
+
+X.hi <- matrix(X.hi, nrow = 13, ncol = 1)  # Ensure it's a 13x1 column vector
+
+# 1000 draws of coefficient vectors from the posterior distribution
+B.tilde <- mvrnorm(1000, coef(t1m2), vcov(t1m2))
+
+# Replicate X.lo across 1000 rows to form X.lo_rep (1000 x 13)
+X.lo_rep <- matrix(rep(X.lo, 1000), nrow = 1000, byrow = TRUE)
+
+# Check the dimensions to confirm alignment
+print(dim(B.tilde))  # Should be 1000 x 14
+print(dim(X.lo_rep))  # Should be 1000 x 13
+
+# Compute predicted probabilities for msexism = 0.25 (X.lo)
+# Extract the coefficients corresponding to the covariates (not including the intercept)
+B.tilde_subset <- B.tilde[, 1:13]  # Extract the first 13 columns
+
+# Compute the predicted probabilities for msexism = 0.25
+s.lo <- inv.logit(B.tilde_subset %*% t(X.lo_rep))  # Matrix of predicted probabilities (transpose)
+
+# Check the dimensions of the result
+print(dim(s.lo))  # Should be 1000 x 1000
+
+# Compute predicted probabilities for msexism = 0.75 (X.hi)
+X.hi_rep <- matrix(rep(X.hi, 1000), nrow = 1000, byrow = TRUE)
+s.hi <- inv.logit(B.tilde_subset %*% t(X.hi_rep))  # Matrix of predicted probabilities for msexism = 0.75
+
+# Compute 95% CI and median for both scenarios
+s.lo_quantiles <- apply(s.lo, 2, quantile, c(0.025, 0.5, 0.975))  # Confidence intervals for scenario 1
+s.hi_quantiles <- apply(s.hi, 2, quantile, c(0.025, 0.5, 0.975))  # Confidence intervals for scenario 2
+
+# Plotting the results
+plot(1:1000, s.lo_quantiles[2, ], ylim = c(0, 1), xlab = "Coefficient Draws",
+     ylab = "Predicted Probability", main = "Predicted Probabilities for msexism Scenarios", bty = "n", col = "white")
+
+# Confidence region for msexism = 0.25
+polygon(x = c(1:1000, rev(1:1000)), y = c(s.lo_quantiles[1, ], rev(s.lo_quantiles[3, ])),
+        col = grey(0.8), border = NA)
+
+# Confidence region for msexism = 0.75
+polygon(x = c(1:1000, rev(1:1000)), y = c(s.hi_quantiles[1, ], rev(s.hi_quantiles[3, ])),
+        col = grey(0.8), border = NA)
+
+# Lines for the medians
+lines(1:1000, s.hi_quantiles[2, ], lty = 3, lwd = 2)  # Median for msexism = 0.75
+lines(1:1000, s.lo_quantiles[2, ], lwd = 2)           # Median for msexism = 0.25
+
+# Add legend
+legend("topright", legend = c("msexism = 0.25", "msexism = 0.75"), lty = c(1, 3), lwd = 3)
+
+
+```
+
+
 
 -   
 
