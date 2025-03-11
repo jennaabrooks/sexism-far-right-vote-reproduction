@@ -52,10 +52,6 @@ data <- read.csv("~/Documents/GitHub/sexismfarrightvote/cleaned.csv")
 
 ```
 
-# ```{r}
-# table(data_2020$vim_vox)
-# ```
-
 ```{r}
 library(ggplot2)
 library(dplyr)
@@ -82,19 +78,15 @@ table(filtered_data$vim_vox)
 
 ```
 
-The histogram above, which depicts intended votes for Vox (coded as 1 for "Yes" and 0 for "No"), continues to show a binary distribution, with a significantly higher frequency of 0s (non-Vox voters) compared to 1s (Vox voters). This refined approach provides a more precise assessment of Vox's appeal during its period of rising popularity.
-
-**Plot and Distribution:**
-
-The dataset comprises a total of 7,850 observations for vote intentions, of which 299 instances (approximately 3.81%) correspond to votes for Vox, the dependent variable of interest, while the remaining 7,551 observations (approximately 96.19%) represent votes for other political parties in Spain. The histogram above, which represents the intended vote for Vox (coded 1 for Yes, 0 for No), shows a binary distribution, with a higher frequency of 0s (non-Vox voters) compared to 1s (Vox voters).
+The histogram above, which depicts intended votes for Vox (coded as 1 for "Yes" and 0 for "No"), shows a binary distribution, with a significantly higher frequency of 0s (3,491 for non-Vox voters) compared to 1s (258 for Vox voters). This refined approach provides a more precise assessment of Vox's appeal during its period of rising popularity.
 
 ### Data Cleaning and Missing Data
 
--   Income (missing values imputed from other waves)
+-   Nonresponses and intended nonvoters were coded as zero.
 
--   na.rm = True a lot for NAs
+-   In order to assess the model for cross validation
 
--   The (.=.) part ensures that missing values (.) in the original variables are preserved in the new variables. (under modern sexism scale)
+-   None of these missing data were used to fit the original model in Table 1 of the paper
 
 ```{r}
 # Load packages
@@ -140,6 +132,31 @@ vox_{it} = sexism_{it} + other\_attitudes_{it} + controls_{it}
 $$
 
 where $i$ indexes individuals and $t$ as time (wave); $other\_attitudes_{it}$ encompasses measures of ideology, authoritarianism, nativism, territorial preferences, and populism; and the controls include sex, age, education, income, living with a partner, and interest in politics.
+
+```{# {r}
+# finding out how many NAs in the data set for each variable in 2020
+
+# # Subset the data for the year 2020
+# data_2020 <- data[data$year == 2020, ]
+# 
+# # Count the number of NAs in the vim_vox column
+# num_na <- sum(is.na(data_2020$vim_vox))
+# 
+# # Print the result
+# print(num_na)
+# 
+# 
+# # List of covariates of interest
+# covariates <- c("vim_vox", "female", "age", "edu3", "dhincome_all", 
+#                 "livingpartner", "intpol", "authoritarian", "ideol", 
+#                 "nativism", "orgterr", "pop6amz", "msexism")
+# 
+# # Count the number of NAs for each covariate
+# na_counts <- colSums(is.na(data_2020[, covariates]))
+# 
+# # Print the result
+# print(na_counts)
+```
 
 ```{r}
 
@@ -192,7 +209,6 @@ corrplot(cor_matrix,
 
 ```
 
-
 # Additional Models
 
 ### Different Link Functions
@@ -201,9 +217,18 @@ In my analysis, I chose to focus specifically on the 2020 data from Table 1 to s
 
 My primary aim was to investigate whether altering the link function from logit to probit or cloglog resulted in any measurable differences in performance. This exploration was driven by an interest in understanding the comparative behavior of probit, logit, and cloglog models when applied to binary data, particularly in terms of their predictive accuracy and suitability for the dataset.
 
-Specifically, I was interested in the cloglog to anlayze instances of rare events in binary data. Given the low frequency of "1"s in the dependent variable (a vote for Vox), I hypothesized that rare events might be a significant feature of my dataset. By incorporating the cloglog, I aimed to ensure that the analysis could effectively capture and model the infrequent occurrences of the event of interest, providing a more robust evaluation of the data. \#### Probit and ClogLog:
+Specifically, I was interested in the cloglog to anlayze instances of rare events in binary data. Given the low frequency of "1"s in the dependent variable (a vote for Vox), I hypothesized that rare events might be a significant feature of my dataset. By incorporating the cloglog, I aimed to ensure that the analysis could effectively capture and model the infrequent occurrences of the event of interest, providing a more robust evaluation of the data.
+
+#### Probit and ClogLog:
 
 ```{r}
+# Filter data for 2019 and fit the logistic regression model
+t1m1 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+               livingpartner + intpol + authoritarian + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2019, ],  # Subset the data for 2019
+             family = binomial(link = "logit"))
+
 # Filter data for 2019 and fit the probit model
 t1prob2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
                livingpartner + intpol + authoritarian + ideol + 
@@ -229,9 +254,101 @@ stargazer(t1m2, t1prob2, t1cloglog2, type = "text",
 
 As shown in the table above, the original logit model outperforms both the probit and cloglog models. The logit model has the lowest AIC value, which suggests better in-sample performance. The cloglog model ranks second in terms of AIC, while the probit model ranks third for in- sample performance, however the relative difference in performance is negligible. Furthermore, the logit model achieves the highest log-likelihood value, further confirming its better performance. These results indicate that the original logit model is the most effective among the three for this dataset.
 
+```{r}
+#getting rid of income in all the models - see if ROC works and CV works 
+
+t1m2_rmin <- glm(vim_vox ~ female + age + factor(edu3) + 
+               livingpartner + intpol + authoritarian + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2020, ],  # Subset the data for 2019
+             family = binomial(link = "logit"))
+
+# Filter data for 2019 and fit the probit model
+t1prob2_rmin <- glm(vim_vox ~ female + age + factor(edu3) +  
+               livingpartner + intpol + authoritarian + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2020, ],  # Subset the data for 2020
+             family = binomial(link = "probit"))
+
+# Filter data for 2020 and fit the logistic regression model
+t1cloglog2_rmin <- glm(vim_vox ~ female + age + factor(edu3) +  
+               livingpartner + intpol + authoritarian + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2020, ],  # Subset the data for 2020
+             family = binomial(link = "cloglog"))
+
+stargazer(t1m2_rmin, t1prob2_rmin, t1cloglog2_rmin, type = "text", 
+          title = "Reproduction of Predictors of Intention to Vote for Vox in 2020",
+          dep.var.labels = "vim_vox",
+          column.labels = c("2020 Logit", "2020 Probit", "2020 Cloglog"),
+          out = "model_comparison.txt")
+
+
+```
+
 When testing out these models in out of sample performance in cross validation, I frequently received NA values for the MSEs. I believe this is due to the low number of 1's in my data set compared to 0's ( with 1846 0's and 162 1's in the year 2020 ) leading to perfect separation in my sample. To remediate this issue, I decided to combine the years 2019 and 2020 in my models to allow them to train on more data.
 
+#ROC Curve - Logit, Probit, Clog Log for Year 2020
+
+I removed the variable dhincome - household income because it contained 36 missing values (NA's). I wanted to retain as many observations as possible, thus I opted to delete the variable so that the model can be trained on as many observations as possible.
+
+```{r}
+library(pROC)
+
+# Generate predicted probabilities for the logistic regression model (t1m2)
+pred_logit <- predict(t1m2_rmin, type = "response")
+
+# Generate predicted probabilities for the probit model (t1prob2)
+pred_probit <- predict(t1prob2_rmin, type = "response")
+
+# Generate predicted probabilities for the cloglog model (t1cloglog2)
+pred_cloglog <- predict(t1cloglog2_rmin, type = "response")
+
+length(data[data$year == 2020, ]$vim_vox)
+length(pred_logit)
+```
+
+```{r}
+# Create ROC curves for each model
+roc_logit <- roc(data[data$year == 2020, ]$vim_vox, pred_logit)
+roc_probit <- roc(data[data$year == 2020, ]$vim_vox, pred_probit)
+roc_cloglog <- roc(data[data$year == 2020, ]$vim_vox, pred_cloglog)
+
+# Calculate AUC for each model
+auc_logit <- auc(roc_logit)
+auc_probit <- auc(roc_probit)
+auc_cloglog <- auc(roc_cloglog)
+
+
+# Print AUC values
+cat("AUC for Logistic Regression (logit):", auc_logit, "\n")
+cat("AUC for Probit Model:", auc_probit, "\n")
+cat("AUC for Cloglog Model:", auc_cloglog, "\n")
+
+# Plot the ROC curves
+plot(roc_logit, col = "blue", main = "ROC Curves for Model Comparison")
+lines(roc_probit, col = "red")
+lines(roc_cloglog, col = "green")
+
+# Add a legend
+legend("bottomright", 
+       legend = c(paste("Logit (AUC =", round(auc_logit, 3), ")"), 
+                  paste("Probit (AUC =", round(auc_probit, 3), ")"), 
+                  paste("Cloglog (AUC =", round(auc_cloglog, 3), ")")), 
+       col = c("blue", "red", "green"), lty = 1, cex = 0.8)
+
+```
+
 #### Simpler Model
+
+```{r}
+t1simp <- glm(vim_vox ~ authoritarian + ideol + 
+                        nativism + orgterr + pop6amz + msexism,
+                      data[data$year == 2020, ], family = binomial(link = "logit"))
+summary(t1simp)
+```
+
+Because my simpler model ran, I hypothesized that there must be a variable in the more general model that was stopping the cross validation from running. I found that I had 36 missing values for income in year 2020, so in order to preserve as much data as possible, I removed this variable as it was also not significant in the authors' original table. I
 
 ```{r}
 # Load necessary libraries
@@ -271,8 +388,8 @@ for (i in 1:k) {
                         nativism + orgterr + pop6amz + msexism,
                       data = train_data, family = binomial(link = "logit"))
   
-  # Fit t1m2 model on training data
-  model_t1m2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+  # Fit t1m2 model on training data - REMOVED INCOME VARIABLE
+  model_t1m2 <- glm(vim_vox ~ female + age + factor(edu3) +  
                       livingpartner + intpol + authoritarian + ideol + 
                       nativism + orgterr + pop6amz + msexism,
                     data = train_data, family = binomial(link = "logit"))
@@ -296,6 +413,26 @@ cat("Mean MSE for t1m2:", mean_mse_t1m2, "(SE:", se_mse_t1m2, ")\n")
 ```
 
 # Cross Validation on simple model
+
+```{r}
+# List all columns in the data_combo dataset
+column_names <- names(data_combo)
+
+# Print the column names
+print(column_names)
+
+# Access the vim_vox column
+vim_vox_column <- data_combo[["vim_vox"]]
+
+# Print the vim_vox column
+print(vim_vox_column)
+
+# Count the number of 1's in the vim_vox column
+count_ones <- sum(data_combo$vim_vox == 1, na.rm = TRUE)
+
+# Print the result
+print(count_ones)
+```
 
 ```{r}
 # # Load necessary libraries
@@ -376,18 +513,18 @@ for (i in 1:k) {
   train_data <- data_combo[-folds[[i]], ]
   test_data <- data_combo[folds[[i]], ]
   
-  # Fit models on training data
-  model_logit <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+  # Fit models on training data # removed dhincome
+  model_logit <- glm(vim_vox ~ female + age + factor(edu3) + 
                         livingpartner + intpol + authoritarian + ideol + 
                         nativism + orgterr + pop6amz + msexism,
                       data = train_data, family = binomial(link = "logit"))
   
-  model_probit <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+  model_probit <- glm(vim_vox ~ female + age + factor(edu3) +
                         livingpartner + intpol + authoritarian + ideol + 
                         nativism + orgterr + pop6amz + msexism,
                       data = train_data, family = binomial(link = "probit"))
   
-  model_cloglog <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+  model_cloglog <- glm(vim_vox ~ female + age + factor(edu3) + 
                           livingpartner + intpol + authoritarian + ideol + 
                           nativism + orgterr + pop6amz + msexism,
                         data = train_data, family = binomial(link = "cloglog"))
@@ -418,7 +555,6 @@ print(results_df)
 
 ##### Out of Sample Performance: 10-Fold Cross Validation
 
-There is evidence of perfect separation in my dataset.
 
 # I tried CV with just 2020 data and stratifying the folds.
 
@@ -456,17 +592,17 @@ for (i in 1:k) {
   test_data <- data_2020[folds[[i]], ]
   
   # Fit models on training data
-  model_logit <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+  model_logit <- glm(vim_vox ~ female + age + factor(edu3) + 
                         livingpartner + intpol + authoritarian + ideol + 
                         nativism + orgterr + pop6amz + msexism,
                       data = train_data, family = binomial(link = "logit"))
   
-  model_probit <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+  model_probit <- glm(vim_vox ~ female + age + factor(edu3) + 
                         livingpartner + intpol + authoritarian + ideol + 
                         nativism + orgterr + pop6amz + msexism,
                       data = train_data, family = binomial(link = "probit"))
   
-  model_cloglog <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+  model_cloglog <- glm(vim_vox ~ female + age + factor(edu3) + 
                           livingpartner + intpol + authoritarian + ideol + 
                           nativism + orgterr + pop6amz + msexism,
                         data = train_data, family = binomial(link = "cloglog"))
@@ -496,7 +632,6 @@ print(results_df)
 
 ```
 
-## Cross Validation
 
 ## Interpretive Exercise (Scenarios)
 
@@ -504,14 +639,13 @@ In the original study, the authors highlight the growing influence of sexist att
 
 To explore this relationship further, I examined how sexist attitudes in `msexism`, measured in the range from 0 to 1 (), influence support for Vox by constructing voter scenarios. Using the best-performing model from the original study— the logistic regression model used in the original paper—I created two voter profiles: one scoring 0.25 (lower sexism) and another scoring 0.75 (moderate to high sexism) on the modern sexism scale. This allowed me to analyze how the likelihood of voting for Vox differs between those who strongly reject versus strongly endorse sexist beliefs. The scale captures perceptions of gender equality, including beliefs about ongoing discrimination, differences in opportunities, and the legitimacy of feminist concerns, as well as attitudes toward media representations, government efforts, and policies addressing gender inequality.
 
-
 ##Scenarios
 
-Scenarios - 0.25 / 0.75 I chose these values because 0 and 1 were likely to alwyas vote one way or the other, I wanted to see more moderate sexist voting behavior. 
+Scenarios - 0.25 / 0.75 I chose these values because 0 and 1 were likely to alwyas vote one way or the other, I wanted to see more moderate sexist voting behavior.
 
 ```{r}
 # Filter data for 2020 and fit the logistic regression model
-t1m2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+t1m2 <- glm(vim_vox ~ female + age + factor(edu3) + 
                livingpartner + intpol + authoritarian + ideol + 
                nativism + orgterr + pop6amz + msexism,
              data = data[data$year == 2020, ],  # Subset the data for 2020
@@ -628,8 +762,6 @@ legend("topright", legend = c("msexism = 0.25", "msexism = 0.75"), lty = c(1, 3)
 
 
 ```
-
-
 
 -   
 
