@@ -1,0 +1,15 @@
+---
+title: "Reproduction of 'Sexism and the far-right vote: The Individual dynamics of gender backlash by Eva Anduiza & Guillem Rico'"
+author: "By: Jenna Brooks"
+format: pdf
+editor: visual
+execute:
+  echo: false
+header-includes:
+  - \usepackage{setspace}
+  - \doublespacing
+---
+
+# Summary:
+
+This reproduction of the paper 'Sexism and the far-right vote: The Individual dynamics of gender backlash by Eva Anduiza & Guillem Rico' examines how sexism has played a role the electoral rise of the far-right party, Vox, in Spain. Anduiza and Rico () argue that having sexist beliefs is one of the most influential attitudinal predictors of voting for the far-right party Vox in 2019 and 2020.

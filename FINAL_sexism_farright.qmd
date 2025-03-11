@@ -1,0 +1,150 @@
+---
+title: "Reproduction of 'Sexism and the far-right vote: The Individual dynamics of gender backlash by Eva Anduiza & Guillem Rico'"
+author: "By: Jenna Brooks"
+format: pdf
+editor: visual
+execute:
+  echo: false
+header-includes:
+  - \usepackage{setspace}
+  - \doublespacing
+---
+
+# Summary:
+
+This reproduction of the paper '**Sexism and the far-right vote: The Individual dynamics of gender backlash by Eva Anduiza & Guillem Rico**' examines how sexism has played a role the electoral rise of the far-right party, Vox, in Spain. Anduiza and Rico (2024) argue that having sexist beliefs is one of the most influential attitudinal predictors of voting for the far-right party Vox in 2019 and 2020.
+
+This paper replicates the authors' original findings of the logistic regression model displayed in Table 1 (Anduiza and Rico 2024, 478). Then, it expands on the analysis to fit three other similar models (a probit, a cloglog, and a simple model) to compare their performance against the authors' original model, using both in-sample and out of sample cross validation to assess their performance. Lastly, it expands on the authors' original findings by presenting a scenario \_\_\_\_\_\_\_\_.
+
+# Background
+
+The main intention of this paper is to examine the role of sexist beliefs in the intention to vote for Vox, a far-right political party in Spain. Based on the previous literature, the authors hypothesized that voters that identify more with sexist attitudes are more likely to vote for far right parties, such as Vox (Anduiza and Rico 2024).
+
+## Data
+
+The data utilized in this study is drawn from the Spanish Political Attitudes dataset (Hernández Pérez et al. 2021), a longitudinal online panel survey conducted annually. The survey uses a quota sampling method to ensure a representative sample of the Spanish adult population aged 18 to 56, with quotas based on gender, age, educational background, geographic region, and municipality size. The data comprises of 7,850 observations and the unit of analysis is individual voters in Spain. Given that Vox did not gain significant traction until late 2018, the analysis of voter intention is restricted to the 2019 and 2020 waves of the survey, which reduces the number of observations to 3,491.
+
+Observational independence could be questioned in this data set due to the longitudinal design (repeated observations) and the geographic clustering of like-minded voters in specific regions, as well as demographic factors such as age, gender, and education.
+
+### Dependent Variable: Votes for Vox
+
+The dependent variable in this study is binary – the intention to vote for Vox, coded as 1, with all other responses, including non-responses and nonvoters, coded as 0. This measure is based on respondents' answers to the question, "Which party would you vote for if the general elections were tomorrow?" The authors chose to analyze voting intention rather than past voting behavior to capture respondents' support for Vox at the exact moment of their interview.
+
+The distribution of the dependent variable is binary, with 258 observations (approximately 7%) corresponding to votes for Vox, the dependent variable of interest, while the remaining 3,491 observations (approximately 93%) represent votes for other political parties in Spain. While not necessarily a rare event, the low number of 1's indicating a intention to vote for Vox (258 total) is something to consider when assessing model performance.
+
+```{r echo=FALSE}
+data <- read.csv("~/Documents/GitHub/sexismfarrightvote/cleaned.csv")
+
+```
+
+```{r echo = F}
+#| message: FALSE
+# Load required packages (install using `install.packages()`ibrary(tidyverse)
+library(ragg)
+library(ggridges)
+library(ggrepel)
+library(brglm2)
+library(stargazer)
+library(marginaleffects)
+library(survey)
+library(dplyr)
+library(broom)
+library(corrplot)
+library(haven)
+```
+
+```{r}
+#| message: FALSE
+library(ggplot2)
+library(dplyr)
+
+#| label: fig-vox-histogram
+#| fig-cap: "The histogram above depicts intended votes for Vox, coded as 1 for 'Yes' and 0 for 'No'. It shows a binary distribution, with a significantly higher frequency of 0s (3,491 for non-Vox voters) compared to 1s (258 for Vox voters)."
+#| fig-align: "center"
+#| out-width: "80%" 
+
+# Filter data for years 2019 and 2020
+filtered_data <- data %>%
+  filter(year %in% c(2019, 2020))
+
+# Plot histogram
+ggplot(filtered_data, aes(x = factor(vim_vox))) +
+  geom_bar(fill = "blue", color = "black", alpha = 0.7) +
+  scale_x_discrete(labels = c("0" = "No", "1" = "Yes")) +
+  labs(
+    title = "Histogram of Intended Votes for Vox (2019 & 2020)",
+    x = "Intended Vote for Vox",
+    y = "Count"
+  ) +
+  theme_minimal() +
+  theme(panel.grid = element_blank())
+
+```
+
+### Missing Data:
+
+The authors do not explicitly remove rows with missing values (`NA`) entirely from the dataset. Instead, they handle missing data on a variable-by-variable basis, often using imputation or recoding strategies to retain as much data as possible.
+
+# Replication of Table 1: Cross- Sectional Logit
+
+My analysis will be replicating Table 1 "Predictors of Intention to Vote for Vox in 2019 and 2020" (pg.487). The authors hope to achieve a descriptive analysis in this paper, assessing how sexist attitudes, alongside other factors typically associated with voting for the far-right, are associated with support for Vox.
+
+Table 1 displays the the estimates of **two cross-sectional logit models** of intended vote for the 2019 and 2020 waves, respectively:
+
+$$
+vox_{it} = sexism_{it} + other\_attitudes_{it} + controls_{it}
+$$
+
+where $i$ indexes individuals and $t$ as time (wave); $other\_attitudes_{it}$ encompasses measures of ideology, authoritarianism, nativism, territorial preferences, and populism; and the controls include sex, age, education, income, living with a partner, and interest in politics.
+
+```{r}
+#| label: tbl-regression
+#| tbl-cap: "Logistic Regression results match those of the original authors. This table shows support for Vox positively associated with sexist beliefs. "
+#| echo: FALSE 
+
+# Filter data for 2019 and fit the logistic regression model
+t1m1 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+               livingpartner + intpol + authoritarian + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2019, ],  # Subset the data for 2019
+             family = binomial(link = "logit"))
+
+# Filter data for 2020 and fit the logistic regression model
+t1m2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+               livingpartner + intpol + authoritarian + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2020, ],  # Subset the data for 2020
+             family = binomial(link = "logit"))
+
+# Create a table for the two models without AIC, BIC, and R-squared
+stargazer(t1m1, t1m2, type = "text", 
+          title = "Reproduction of Predictors of Intention to Vote for Vox in 2019 and 2020",
+          dep.var.labels = "vim_vox",
+          column.labels = c("2019", "2020"),
+          # omit.stat = c("aic", "bic", "rsq"),  # Omit AIC, BIC, and R-squared
+          stats = c("n"),  # Only display the number of observations
+          out = "model_comparison.txt")
+
+```
+
+Based on the logistic regression results, support for Vox was positively associated with right-wing ideology, sexism, nativism, and populist attitudes (with the latter reaching statistical significance only in 2020), while it is negatively associated with attitudes favoring decentralization. Among these factors, modern sexism has the second-largest impact, surpassed only by ideological orientation. This reiterates the authors' argument that sexism plays a prominent role in an intention to vote for the far-right party, Vox.
+
+# Additional Models
+
+## Reduced Logit, Probit and ClogLog
+
+I extended the original logit model by fitting two additional models: a probit model and a cloglog model, both using the same dependent variable, *vote for Vox*. Beyond changing the link function (to probit and cloglog), I narrowed the analysis to the 2020 data from Table 1 to simplify the comparison across models by focusing on a single year. Additionally, I encountered issues when running ROC and cross-validation analyses due to missing values (NAs) in the `dhincome_all` variable, which was included in the original model. To address this, I removed the variable from the analysis.
+
+My primary aim was to investigate whether altering the link function from logit to probit or cloglog resulted in any measurable differences in performance. This exploration was driven by an interest in understanding the comparative behavior of probit, logit, and cloglog models when applied to binary data, particularly in terms of their predictive accuracy and suitability for the dataset.
+
+Specifically, I was interested in the cloglog to anlayze instances of rare events in binary data. Given the low frequency of "1"s in the dependent variable (a vote for Vox), I hypothesized that rare events might be a significant feature of my dataset.
+
+# Citations:
+
+Anduiza, Eva, and Guillem Rico. 2024. "Sexism and the Far-Right Vote: The Individual Dynamics of Gender Backlash." *American Journal of Political Science* 68 (2): 478–493. <https://doi.org/10.1111/ajps.12759>.
+
+Hernández Pérez, Enrique, Eva Anduiza Perea, Carol Galais González, Guillem Rico Camps, Jordi Muñoz Mendoza, María José Hierro Hernández, Roberto Pannico, Berta Barbet Porta, and Dani Marinova. 2021. “POLAT Project: Spanish Political Attitudes Panel Dataset (Waves 1–6).” Universitat Autònoma de Barcelona. <https://ddd.uab.cat/record/243399> (accessed September 13, 2021).
+
+Hlavac, Marek. 2022. stargazer: Well-Formatted Regression and Summary Statistics Tables. Social Policy Institute, Bratislava, Slovakia.
+
+#AI Appendix
