@@ -139,6 +139,41 @@ My primary aim was to investigate whether altering the link function from logit 
 
 Specifically, I was interested in the cloglog to anlayze instances of rare events in binary data. Given the low frequency of "1"s in the dependent variable (a vote for Vox), I hypothesized that rare events might be a significant feature of my dataset.
 
+```{r}
+#| label: tbl-logitprobit
+#| tbl-cap: "Logit vs. Probit vs. ClogLog Model. Varying the link function does little to change the performance of the model"
+#| echo: FALSE 
+#| 
+# Filter data for 2020 and fit the logistic regression model
+t1m2 <- glm(vim_vox ~ female + age + factor(edu3) +  
+               livingpartner + intpol + authoritarian + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2020, ],  # Subset the data for 2019
+             family = binomial(link = "logit"))
+
+# Filter data for 2019 and fit the probit model
+t1prob2 <- glm(vim_vox ~ female + age + factor(edu3) + 
+               livingpartner + intpol + authoritarian + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2020, ],  # Subset the data for 2020
+             family = binomial(link = "probit"))
+
+# Filter data for 2020 and fit the logistic regression model
+t1cloglog2 <- glm(vim_vox ~ female + age + factor(edu3) + 
+               livingpartner + intpol + authoritarian + ideol + 
+               nativism + orgterr + pop6amz + msexism,
+             data = data[data$year == 2020, ],  # Subset the data for 2020
+             family = binomial(link = "cloglog"))
+
+stargazer(t1m2, t1prob2, t1cloglog2, type = "text", 
+          title = "Reproduction of Predictors of Intention to Vote for Vox in 2020",
+          dep.var.labels = "vox",
+          column.labels = c("2020 Logit", "2020 Probit", "2020 Cloglog"),
+          out = "model_comparison.txt")
+```
+
+\#
+
 # Citations:
 
 Anduiza, Eva, and Guillem Rico. 2024. "Sexism and the Far-Right Vote: The Individual Dynamics of Gender Backlash." *American Journal of Political Science* 68 (2): 478–493. <https://doi.org/10.1111/ajps.12759>.
