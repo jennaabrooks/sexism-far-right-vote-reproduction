@@ -14,7 +14,7 @@ header-includes:
 
 This reproduction of the paper '**Sexism and the far-right vote: The Individual dynamics of gender backlash by Eva Anduiza & Guillem Rico**' examines how sexism has played a role the electoral rise of the far-right party, Vox, in Spain. Anduiza and Rico (2024) argue that having sexist beliefs is one of the most influential attitudinal predictors of voting for the far-right party Vox in 2019 and 2020.
 
-This paper replicates the authors' original findings of the logistic regression model displayed in Table 1 (Anduiza and Rico 2024, 478). Then, it expands on the analysis to fit three other similar models (a probit, a cloglog, and a simple model) to compare their performance against the authors' original model, using both in-sample and out of sample cross validation to assess their performance. Lastly, it expands on the authors' original findings by presenting a scenario \_\_\_\_\_\_\_\_.
+This paper replicates the authors' original findings of the logistic regression model displayed in Table 1 (Anduiza and Rico 2024, 478). Then, it expands on the analysis to fit two other similar models (a probit and a cloglog) to compare their performance against the authors' original model, using both in-sample and out of sample cross validation to assess their performance. Lastly, it expands on the authors' original findings by presenting a scenario in which the relationship between sexism, gender, and voting behavior can be further explored.
 
 # Background
 
@@ -85,9 +85,9 @@ ggplot(filtered_data, aes(x = factor(vim_vox))) +
 
 The authors do not explicitly remove rows with missing values (`NA`) entirely from the dataset. Instead, they handle missing data on a variable-by-variable basis, often using imputation or recoding strategies to retain as much data as possible.
 
-# Replication of Table 1: Cross- Sectional Logit
+# Replication of Table 1: Cross-Sectional Logit
 
-My analysis will be replicating Table 1 "Predictors of Intention to Vote for Vox in 2019 and 2020" (pg.487). The authors hope to achieve a descriptive analysis in this paper, assessing how sexist attitudes, alongside other factors typically associated with voting for the far-right, are associated with support for Vox.
+My analysis will be replicating Table 1 "Predictors of Intention to Vote for Vox in 2019 and 2020" (Anduiza and Rico 2024, 487). The authors hope to achieve a descriptive analysis in this paper, assessing how sexist attitudes, alongside other factors typically associated with voting for the far-right, are associated with support for Vox.
 
 Table 1 displays the the estimates of **two cross-sectional logit models** of intended vote for the 2019 and 2020 waves, respectively:
 
@@ -127,17 +127,17 @@ stargazer(t1m1, t1m2, type = "text",
 
 ```
 
-Based on the logistic regression results, support for Vox was positively associated with right-wing ideology, sexism, nativism, and populist attitudes (with the latter reaching statistical significance only in 2020), while it is negatively associated with attitudes favoring decentralization. Among these factors, modern sexism has the second-largest impact, surpassed only by ideological orientation. This reiterates the authors' argument that sexism plays a prominent role in an intention to vote for the far-right party, Vox.
+Based on the logistic regression results presented in Table 1, support for Vox was positively associated with right-wing ideology, sexism, nativism, and populist attitudes (with the latter reaching statistical significance only in 2020), while it is negatively associated with attitudes favoring decentralization. Among these factors, modern sexism has the second-largest impact, surpassed only by ideological orientation. This reiterates the authors' argument that sexism plays a prominent role in an intention to vote for the far-right party, Vox.
 
 # Additional Models
 
 ## Reduced Logit, Probit and ClogLog
 
-I extended the original logit model by fitting two additional models: a probit model and a cloglog model, both using the same dependent variable, *vote for Vox*. Beyond changing the link function (to probit and cloglog), I narrowed the analysis to the 2020 data from Table 1 to simplify the comparison across models by focusing on a single year. Additionally, I encountered issues when running ROC and cross-validation analyses due to missing values (NAs) in the `dhincome_all` variable, which was included in the original model. To address this, I removed the variable from the analysis.
+I extended the original logit model by fitting two additional models: a probit model and a cloglog model, both using the same dependent variable, vote for Vox. Beyond changing the link function (to probit and cloglog), I narrowed the analysis to the 2020 data from Table 1 to simplify the comparison across models by focusing on a single year. Additionally, I encountered issues when running ROC and cross-validation analyses due to missing values (NAs) in the `dhincome_all` variable, which was included in the original model. To address this, I removed the variable from the analysis.
 
 My primary aim was to investigate whether altering the link function from logit to probit or cloglog resulted in any measurable differences in performance. This exploration was driven by an interest in understanding the comparative behavior of probit, logit, and cloglog models when applied to binary data, particularly in terms of their predictive accuracy and suitability for the dataset.
 
-Specifically, I was interested in the cloglog to anlayze instances of rare events in binary data. Given the low frequency of "1"s in the dependent variable (a vote for Vox), I hypothesized that rare events might be a significant feature of my dataset.
+Specifically, I was interested in the cloglog to analyze instances of rare events in binary data. Given the low frequency of "1"s in the dependent variable (a vote for Vox), I hypothesized that rare events might be a significant feature of my dataset.
 
 ```{r}
 #| label: tbl-logitprobit
@@ -172,7 +172,271 @@ stargazer(t1m2, t1prob2, t1cloglog2, type = "text",
           out = "model_comparison.txt")
 ```
 
-\#
+## In Sample Performance 
+
+As shown in Table 2, the logit model outperforms both the probit and cloglog models. The logit model has the lowest AIC value, which suggests better in-sample performance. The cloglog model ranks second in terms of AIC, while the probit model ranks third for in- sample performance, however the relative difference in performance is negligible, as seen in the ROC plot (Table 3). The AUC values in Table 3 are the same, indicating similar performance. Furthermore, the logit model achieves the highest log-likelihood value, further confirming its better performance. These results indicate that the original logit model is the most effective among the three for this dataset.
+
+```{r message=FALSE, warning=FALSE}
+suppressPackageStartupMessages(library(pROC))
+library(pROC)
+
+# Generate predicted probabilities for the logistic regression model (t1m2)
+pred_logit <- predict(t1m2, type = "response")
+
+# Generate predicted probabilities for the probit model (t1prob2)
+pred_probit <- predict(t1prob2, type = "response")
+
+# Generate predicted probabilities for the cloglog model (t1cloglog2)
+pred_cloglog <- predict(t1cloglog2, type = "response")
+
+```
+
+```{r message=FALSE, warning=FALSE}
+#| label: tbl-ROC-insample
+#| tbl-cap: "The ROC plot compares in-sample performance of logit, probit and cloglog. All three seem to have similar performance and a high rate of true positives, indicating good performance."
+#| echo: FALSE 
+#| 
+# Create ROC curves for each model
+roc_logit <- roc(data[data$year == 2020, ]$vim_vox, pred_logit)
+roc_probit <- roc(data[data$year == 2020, ]$vim_vox, pred_probit)
+roc_cloglog <- roc(data[data$year == 2020, ]$vim_vox, pred_cloglog)
+
+# Calculate AUC for each model
+auc_logit <- auc(roc_logit)
+auc_probit <- auc(roc_probit)
+auc_cloglog <- auc(roc_cloglog)
+
+
+# # Print AUC values
+# cat("AUC for Logistic Regression (logit):", auc_logit, "\n")
+# cat("AUC for Probit Model:", auc_probit, "\n")
+# cat("AUC for Cloglog Model:", auc_cloglog, "\n")
+
+# Plot the ROC curves
+plot(roc_logit, col = "blue", main = "ROC Curves for Model Comparison")
+lines(roc_probit, col = "red")
+lines(roc_cloglog, col = "green")
+
+# Add a legend
+legend("bottomright", 
+       legend = c(paste("Logit (AUC =", round(auc_logit, 3), ")"), 
+                  paste("Probit (AUC =", round(auc_probit, 3), ")"), 
+                  paste("Cloglog (AUC =", round(auc_cloglog, 3), ")")), 
+       col = c("blue", "red", "green"), lty = 1, cex = 0.8)
+
+```
+
+## Out of Sample Performance
+
+Table 4 shows the outcome of 10-fold cross validation: the logit, probit and cloglog are nearly identical and closely match their in sample performance. The values of the AUC remain constant both in sample and out of sample, indicating that that models are not over fitting and perform similarly on unseen data. As seen in the in sample performance, changing the link function doesn't change the performance.
+
+```{r message=FALSE, warning=FALSE}
+#| label: tbl-ROC-OOS
+#| tbl-cap: "The ROC plot compares out-of-sample performance of logit, probit and cloglog. All three seem to have similar performance and a high rate of true positives, indicating good performance and no evidence of overfitting."
+#| echo: FALSE 
+#| 
+library(caret)  # For creating cross-validation folds
+
+# Filter data for 2020
+data_2020 <- data[data$year == 2020, ]  
+
+
+# Define a function to compute AUC
+compute_auc <- function(model, test_data) {
+  preds <- predict(model, newdata = test_data, type = "response")  # Predicted probabilities
+  roc_obj <- roc(test_data$vim_vox, preds)  # Compute ROC curve
+  auc_value <- auc(roc_obj)  # Extract AUC
+  return(auc_value)
+}
+
+# Set number of folds
+set.seed(123)  # For reproducibility
+k <- 10
+
+# Create stratified folds based on the dependent variable (vim_vox)
+folds <- createFolds(data_2020$vim_vox, k = k, list = TRUE, returnTrain = FALSE)
+
+# Initialize vectors to store AUCs
+auc_logit <- numeric(k)
+auc_probit <- numeric(k)
+auc_cloglog <- numeric(k)
+
+# Initialize vectors to store out-of-sample predictions and true labels
+all_preds_logit <- numeric(nrow(data_2020))
+all_preds_probit <- numeric(nrow(data_2020))
+all_preds_cloglog <- numeric(nrow(data_2020))
+all_true_labels <- numeric(nrow(data_2020))
+
+# Perform cross-validation
+for (i in 1:k) {
+  # Split data into training and test sets
+  train_data <- data_2020[-folds[[i]], ]
+  test_data <- data_2020[folds[[i]], ]
+  
+  # Fit models on training data
+  model_logit <- glm(vim_vox ~ female + age + factor(edu3) + 
+                        livingpartner + intpol + authoritarian + ideol + 
+                        nativism + orgterr + pop6amz + msexism,
+                      data = train_data, family = binomial(link = "logit"))
+  
+  model_probit <- glm(vim_vox ~ female + age + factor(edu3) + 
+                        livingpartner + intpol + authoritarian + ideol + 
+                        nativism + orgterr + pop6amz + msexism,
+                      data = train_data, family = binomial(link = "probit"))
+  
+  model_cloglog <- glm(vim_vox ~ female + age + factor(edu3) + 
+                          livingpartner + intpol + authoritarian + ideol + 
+                          nativism + orgterr + pop6amz + msexism,
+                        data = train_data, family = binomial(link = "cloglog"))
+  
+  # Compute AUC on test data
+  auc_logit[i] <- compute_auc(model_logit, test_data)
+  auc_probit[i] <- compute_auc(model_probit, test_data)
+  auc_cloglog[i] <- compute_auc(model_cloglog, test_data)
+  
+  # Store out-of-sample predictions and true labels
+  all_preds_logit[folds[[i]]] <- predict(model_logit, newdata = test_data, type = "response")
+  all_preds_probit[folds[[i]]] <- predict(model_probit, newdata = test_data, type = "response")
+  all_preds_cloglog[folds[[i]]] <- predict(model_cloglog, newdata = test_data, type = "response")
+  all_true_labels[folds[[i]]] <- test_data$vim_vox
+}
+
+# Calculate mean AUC and standard errors
+mean_auc <- c(mean(auc_logit), mean(auc_probit), mean(auc_cloglog))
+se_auc <- c(sd(auc_logit) / sqrt(k), sd(auc_probit) / sqrt(k), sd(auc_cloglog) / sqrt(k))
+
+# Find the model with the largest AUC
+best_index <- which.max(mean_auc)
+
+# Format results: Standard error in parentheses for the best model
+auc_results <- sprintf("%.5f", mean_auc)
+auc_results[best_index] <- sprintf("%.5f (%.5f)", mean_auc[best_index], se_auc[best_index])
+
+# Print results
+model_names <- c("Logit", "Probit", "Cloglog")
+results_df <- data.frame(Model = model_names, AUC = auc_results)
+print(results_df)
+
+# Compute ROC curves for each model using out-of-sample predictions
+roc_logit <- roc(all_true_labels, all_preds_logit)
+roc_probit <- roc(all_true_labels, all_preds_probit)
+roc_cloglog <- roc(all_true_labels, all_preds_cloglog)
+
+# Plot ROC curves for all models
+plot(roc_logit, col = "red", main = "ROC Curves for Out-of-Sample Performance")
+lines(roc_probit, col = "blue")
+lines(roc_cloglog, col = "green")
+legend("bottomright", legend = c(paste("Logit (AUC =", round(auc(roc_logit), 3)),
+                               paste("Probit (AUC =", round(auc(roc_probit), 3)),
+                               paste("Cloglog (AUC =", round(auc(roc_cloglog), 3))),
+       col = c("red", "blue", "green"), lty = 1)
+
+```
+
+## The Best Model 
+
+The best model for both in sample and out of sample performance is the authors' originial logit model. This makes me more confident in their analysis and conclusions they made showing increased sexism makes a person more likely to vote for far-right party Vox.
+
+# Expansion 
+
+## Scenario Construction
+
+In the original study, the authors highlight the growing influence of sexist attitudes on election outcomes for far-right parties. While anti-feminism is not the central focus of Vox, the party has employed anti-feminist rhetoric, portraying feminists as “violent,” “radical,” and “communist,” while also denying the existence of discrimination against women(Anduiza and Rico 2024, 483). Based on this, the authors hypothesize that increasing levels of sexism among voters may contribute to the rise of Vox in Spain.
+
+To explore this relationship further, I examined how sexist attitudes in `msexism` influence support for Vox between two genders, Male and Female. Using the best-performing model from the original study— the logistic regression model used in the original paper—I created two voter profiles: one male, one female while holding all other variables constant at their median values. These values allowed me to analyze how the likelihood of voting for Vox differs between genders based on how much they endorse sexist beliefs.
+
+```{r message=FALSE, warning=FALSE}
+#| label: tbl-scenario
+#| tbl-cap: "The plot shows the predicted probability of voting for Vim Vox based on msexism (modern sexism), with separate lines for males (blue, solid line) and females (red, dashed line) with 95% confidence intervals."
+#| echo: FALSE 
+#| 
+# Load necessary package
+library(MASS)
+
+# Inverse logit function
+inv.logit <- function(x) {
+  1 / (1 + exp(-x))
+}
+
+# Compute median values for covariates (excluding "female" since it's a grouping variable)
+median_values <- data[data$year == 2020, ] %>%
+  summarise(
+    age = median(age, na.rm = TRUE),
+    edu3 = as.numeric(names(which.max(table(edu3)))),
+    livingpartner = median(livingpartner, na.rm = TRUE),
+    intpol = median(intpol, na.rm = TRUE),
+    authoritarian = median(authoritarian, na.rm = TRUE),
+    ideol = median(ideol, na.rm = TRUE),
+    nativism = median(nativism, na.rm = TRUE),
+    orgterr = median(orgterr, na.rm = TRUE),
+    pop6amz = median(pop6amz, na.rm = TRUE)
+  )
+
+# Define a sequence of msexism values for plotting
+msexism_seq <- seq(min(data$msexism, na.rm = TRUE), max(data$msexism, na.rm = TRUE), length.out = 100)
+
+# Create a dataframe for predictions with both Male (0) and Female (1)
+prediction_data <- expand.grid(
+  female = c(0, 1),  # 0 = Male, 1 = Female
+  age = median_values$age,
+  edu3 = median_values$edu3,
+  livingpartner = median_values$livingpartner,
+  intpol = median_values$intpol,
+  authoritarian = median_values$authoritarian,
+  ideol = median_values$ideol,
+  nativism = median_values$nativism,
+  orgterr = median_values$orgterr,
+  pop6amz = median_values$pop6amz,
+  msexism = msexism_seq
+)
+
+# Predict probabilities with confidence intervals
+predictions <- predict(t1m2, newdata = prediction_data, type = "link", se.fit = TRUE)
+
+# Compute predicted probabilities using inverse logit
+prediction_data$prob <- inv.logit(predictions$fit)
+prediction_data$lower <- inv.logit(predictions$fit - 1.96 * predictions$se.fit)
+prediction_data$upper <- inv.logit(predictions$fit + 1.96 * predictions$se.fit)
+
+# Split predictions by gender
+male_data <- subset(prediction_data, female == 0)
+female_data <- subset(prediction_data, female == 1)
+
+# Plot results
+plot(male_data$msexism, male_data$prob, type = "l", lwd = 2, col = "blue",
+     xlab = "Msexism", ylab = "Predicted Probability of Voting Vim Vox",
+     main = "Msexism, Gender, and Predicted Voting Probability",
+     ylim = c(0, 1))
+
+# Add confidence intervals for males
+polygon(c(male_data$msexism, rev(male_data$msexism)),
+        c(male_data$lower, rev(male_data$upper)),
+        col = adjustcolor("blue", alpha.f = 0.2), border = NA)
+
+# Add male line
+lines(male_data$msexism, male_data$prob, col = "blue", lwd = 2)
+
+# Add confidence intervals for females
+polygon(c(female_data$msexism, rev(female_data$msexism)),
+        c(female_data$lower, rev(female_data$upper)),
+        col = adjustcolor("red", alpha.f = 0.2), border = NA)
+
+# Add female line
+lines(female_data$msexism, female_data$prob, col = "red", lwd = 2, lty = 2)  # Dashed line for females
+
+# Add legend
+legend("topright", legend = c("Male", "Female"), col = c("blue", "red"), lwd = 2, lty = c(1, 2))
+
+
+```
+
+## Interpretation
+
+Table 5 illustrates that as sexism increases, the predicted probability of voting for Vox rises slightly. This finding aligns with the authors' original conclusions that sexism influences support for right-wing parties, though the effect appears less pronounced. The male (blue) and female (red) lines are nearly identical, indicating that modern sexism has a similar effect on voting behavior for both genders. This aligns with the authors original findings that gender did not play a significant role in a vote for Vox due to the low coefficient value. For low levels of msexism (close to 0), the predicted probability of voting Vox is very close to zero for both males and females. Therefore, we can interpret sexism as a predictor for voting for Vox, but gender does not significantly moderate this effect. Males and females with the same level of `msexism` have nearly the same probability of voting for Vox.
+
+# Conclusion 
+
+Overall, the replication process strengthens confidence in the authors' conclusions. The original findings are robust to changes in model specification, and the additional analyses provide further insights into the relationship between sexism and far-right voting behavior. Future research may expand on these findings by considering longitudinal trends, interactions with other ideological factors, or examining the role of sexism in different political contexts. This study underscores the importance of attitudinal predictors in understanding far-right support and highlights the need for continued exploration of gendered political dynamics.
 
 # Citations:
 
@@ -182,4 +446,12 @@ Hernández Pérez, Enrique, Eva Anduiza Perea, Carol Galais González, Guillem R
 
 Hlavac, Marek. 2022. stargazer: Well-Formatted Regression and Summary Statistics Tables. Social Policy Institute, Bratislava, Slovakia.
 
-#AI Appendix
+# AI Appendix
+
+-   I used ChatGPT LLM/AI tool in this assignment.
+
+-   I used it to help troubleshoot errors in code, create plots and interpret results. 
+
+-   I found it helpful in breaking down the results and providing clear understanding for how to evaluate models. 
+
+Link: <https://chatgpt.com/share/67d20de3-a52c-800d-be49-f64caef8f22f>

@@ -222,32 +222,29 @@ Specifically, I was interested in the cloglog to anlayze instances of rare event
 #### Probit and ClogLog:
 
 ```{r}
-# Filter data for 2019 and fit the logistic regression model
-t1m1 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
-               livingpartner + intpol + authoritarian + ideol + 
-               nativism + orgterr + pop6amz + msexism,
-             data = data[data$year == 2019, ],  # Subset the data for 2019
-             family = binomial(link = "logit"))
-
-# Filter data for 2019 and fit the probit model
-t1prob2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
+help(glm)
+t1m2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all +  
                livingpartner + intpol + authoritarian + ideol + 
                nativism + orgterr + pop6amz + msexism,
              data = data[data$year == 2020, ],  # Subset the data for 2020
-             family = binomial(link = "probit"))
+             family = binomial(link = "logit"),
+             x = TRUE,  # Include the model matrix in the output
+             y = TRUE)  # Include the response vector in the output
 
-# Filter data for 2020 and fit the logistic regression model
-t1cloglog2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all + 
-               livingpartner + intpol + authoritarian + ideol + 
-               nativism + orgterr + pop6amz + msexism,
-             data = data[data$year == 2020, ],  # Subset the data for 2020
-             family = binomial(link = "cloglog"))
 
-stargazer(t1m2, t1prob2, t1cloglog2, type = "text", 
-          title = "Reproduction of Predictors of Intention to Vote for Vox in 2020",
-          dep.var.labels = "vim_vox",
-          column.labels = c("2020 Logit", "2020 Probit", "2020 Cloglog"),
-          out = "model_comparison.txt")
+new.df <-t1m2$x
+response_values <- t1m2$y
+```
+
+```{r}
+t1prob2 <- glm(vim_vox ~ female + age + factor(edu3) + dhincome_all +  
+              livingpartner + intpol + authoritarian + ideol + 
+              nativism + orgterr + pop6amz + msexism,
+              data = new.df,  # Subset the data for 2020
+              family = binomial(link = "probit"),
+              x = TRUE,  # Include the model matrix in the output
+              y = TRUE)  # Include the response vector in the output
+
 ```
 
 ##### In Sample Comparison of Models
