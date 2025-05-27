@@ -40,4 +40,4 @@ The original replication data can be found [**HERE on Dataverse**](https://datav
 - Replicate Table 1 (logistic regression results) from the original study
 - Fit and compare performance of probit and cloglog models
 - Analyze model performance with ROC and AUC metrics
-- Discuss implications of sexist attitudes on
+- Discuss implications of sexist attitudes on voting for far right party
