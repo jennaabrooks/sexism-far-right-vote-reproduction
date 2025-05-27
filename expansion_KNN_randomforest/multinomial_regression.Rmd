@@ -1,0 +1,246 @@
+---
+title: "Multinomial Regression"
+output: html_notebook
+---
+
+```{r}
+library(stargazer)
+library(nnet)
+library(caret)  
+
+```
+
+```{r}
+df <- read.csv("~/Documents/GitHub/CSS206/ReplicationData/cleaned.csv")
+
+dim(df)
+#originial data frame has 7850 obs X 123 variables
+
+str(df)
+
+```
+
+Variables of interest :
+
+-   Dependent variable - voteintentionspain (categorical - order doesn't matter)
+
+    -   1 PSOE
+
+    -   2- PP
+
+    -   3- Podemos
+
+    -   4 - Ciduadanos
+
+    -   7- ERC (Catalonia)
+
+    -   23 - Vox
+
+-   Independent variables
+
+    -   education - as.factor(edu3) - this variable represents 1 "Lower secondary", 2 "Upper secondary", 3 "Tertiary"
+
+    -   income - dhincome_all - Normalized income (range 0–1)
+
+    -   female - (0,1)
+
+    -   nativism (percent)
+
+    -   msexism (percent)
+
+    -   femdemonstrate (1- YES 2- No)
+
+-   Why we chose these variables?
+
+    -   nativism- because anti-immigrant rhetoric is used in political campaigns to varying degrees across political spectrum
+
+    -   do people who protest vote for feminist parties? - feminist protest
+
+    -   msexism - are people who are more sexist, voting for parties with these beliefs
+
+```{r}
+#CLEAN the data 
+
+#POLITICAL PARTIES OF INTEREST 
+
+# Step 1: Define the parties we want to look at
+keep_codes <- c(1, 2, 3, 4, 7, 23)
+
+# Step 2: Filter the DataFrame
+df_clean <- df[df$voteintentionspain %in% keep_codes, ]
+
+
+#IND VARS OF INTEREST 
+
+# Step 1: Select only the relevant columns
+df_clean <- df_clean[, c(
+  "voteintentionspain",   # Dependent variable (now a factor with 6 categories)
+  "edu3",                # For education
+  "dhincome_all",         # Income
+  "female",               # 0 = male, 1 = female
+  "nativism",             # Percent
+  "msexism",              # Percent
+  "femdemonstrate"        # 1 = Yes, 2 = No
+)]
+
+# Recode: 2 (No) becomes 0
+df_clean$femdemonstrate[df_clean$femdemonstrate == 2] <- 0
+
+table(df_clean$voteintentionspain)
+
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# Create a proportion table as a data frame
+df_clean %>%
+  count(voteintentionspain) %>%
+  mutate(percentage = n / sum(n) * 100) %>%
+  ggplot(aes(x = reorder(voteintentionspain, -percentage), y = percentage)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  geom_text(aes(label = sprintf("%.1f%%", percentage)), vjust = -0.5) +
+  labs(title = "Vote Intention in Spain",
+       x = "Vote Intention",
+       y = "Percentage") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+#Removing NA's
+str(df_clean)
+df_clean <- df_clean[!is.na(df_clean$femdemonstrate) & !is.na(df_clean$dhincome_all), ]
+
+col_missing_values <- sapply(df_clean, function(x) sum(is.na(x)))
+
+# Print the number of missing values for each column
+print(col_missing_values)
+
+#3034 observations after NA's removed 
+
+write.csv(df_clean, "df_clean.csv", row.names = FALSE)
+
+```
+
+#Model 1
+
+Got rid of education from the model
+
+```{r}
+#Multinomial Regression 
+library ( nnet )
+
+#Model 1 - Basic multinomial model 
+mnl.fit <- multinom(voteintentionspain ~ dhincome_all + female + nativism + msexism + femdemonstrate , Hess=T, model=T, data=df_clean, maxit=200) #model
+
+summary(mnl.fit)
+
+```
+
+```{r}
+
+#Create train/test split
+set.seed(123) 
+train_idx <- createDataPartition(df_clean$voteintentionspain, p = 0.8, list = FALSE)
+train_data <- df_clean[train_idx, ]
+test_data <- df_clean[-train_idx, ]
+
+# Fit model on training data
+mod1 <- multinom(voteintentionspain ~ dhincome_all + 
+                    nativism + msexism + femdemonstrate,
+                    Hess = TRUE, model = TRUE, data = train_data, maxit = 200)
+
+# Step 4: Predict on test data
+pred_class <- predict(mnl.fit, newdata = test_data)
+
+# Step 5: Evaluate accuracy
+confusion_matrix <- table(Predicted = pred_class, Actual = test_data$voteintentionspain)
+accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+
+print(confusion_matrix)
+print(paste("Accuracy:", round(accuracy, 3)))
+
+
+#This model is predicting 1 (PSOE) a lot more than the other categories. Why might this be? 
+#Accuracy 37.9 % 
+```
+
+```{r}
+library(caret)
+
+df_clean$voteintentionspain <- as.factor(df_clean$voteintentionspain)
+
+
+# Define training control with 5-fold CV
+train_control <- trainControl(method = "cv", number = 10)
+
+# Train the multinomial model using caret's train()
+
+cv_model <- train(voteintentionspain ~ dhincome_all + 
+                    nativism + msexism + femdemonstrate,
+  data = df_clean,
+  method = "multinom",
+  trControl = train_control,
+  MaxNWts = 10000,
+  trace = FALSE
+)
+
+# View results
+print(cv_model)
+
+```
+
+We chose to downsample the 1's PSOE because they made up 1230/ 3034 40% of observations, creating class imbalance.
+
+```{r}
+# Confusion Matrix
+confusion_matrix <- table(Predicted = pred_class, Actual = test_data$voteintentionspain)
+
+# Calculate accuracy
+accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+
+print(confusion_matrix)
+print(paste("Accuracy:", round(accuracy, 3)))
+
+#accuracy very slightly improved performance 37.7% 
+```
+
+```{r}
+#RANDOM FOREST 
+library(randomForest)
+
+# Make sure voteintentionspain is a factor
+train_data$voteintentionspain <- as.factor(train_data$voteintentionspain)
+
+# Fit the model
+rf_model <- randomForest(voteintentionspain ~ dhincome_all + female + 
+                           nativism + msexism + femdemonstrate,
+                         data = train_data,
+                         ntree = 500,           # Number of trees
+                         mtry = 3,              # Number of variables tried at each split (default = sqrt(p))
+                         importance = TRUE)     # Enables variable importance measures
+
+```
+
+```{r}
+# Predict on test set
+preds <- predict(rf_model, newdata = test_data)
+
+# Create confusion matrix
+conf_mat <- table(Predicted = preds, Actual = test_data$voteintentionspain)
+
+# Calculate accuracy
+accuracy <- sum(diag(conf_mat)) / sum(conf_mat)
+print(paste("Accuracy:", round(accuracy * 100, 2), "%"))
+
+importance(rf_model)
+varImpPlot(rf_model)
+
+# "Accuracy: 35.37 %"
+```
+
+-   `msexism`, `dhincome_all`, and `nativism` are your **top predictors** of voting intention.
+
+-   Gender (`female`) and participation in women's rights demonstrations (`femdemonstrate`) are **less predictive**.

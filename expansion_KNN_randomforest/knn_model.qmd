@@ -1,0 +1,214 @@
+---
+title: "knn_allison"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(caret)
+library(pROC)
+```
+
+```{r}
+## read data & cast categorical variables as factors
+dat <- read.csv("df_clean.csv")
+dat <- dat |> 
+  mutate(
+    voteintentionspain = factor(voteintentionspain),
+    edu3 = factor(edu3),
+    female = factor(female),
+    femdemonstrate = factor(femdemonstrate),
+    voteintentionspain = recode(voteintentionspain, "3" = "Podemos", "1" = "PSOE", "7" = "ERC", "4" = "Ciduadanos", "2" = "PP", "23" = "Vox")
+  )
+```
+
+```{r}
+dim(dat)
+```
+
+```{r}
+## 80-20 train-test split, partitioned with caret
+set.seed(123)
+train_idx <- createDataPartition(dat$voteintentionspain, p = 0.8, list = FALSE)
+train_data <- dat[train_idx, ]
+test_data <- dat[-train_idx, ]
+```
+
+```{r}
+## create model over training data, starting with 3-nearest neighbors
+## excluding education also
+mod = knn3(voteintentionspain ~ dhincome_all + female + nativism + msexism + femdemonstrate, data = train_data, k = 3)
+mod
+```
+
+```{r}
+trainpredict = predict(mod, train_data, type="class")
+testpredict = predict(mod, test_data, type="class")
+```
+
+```{r}
+trainmatrix = confusionMatrix( 
+    factor(trainpredict), 
+    factor(train_data$voteintentionspain)
+)
+
+testmatrix = confusionMatrix( 
+    factor(testpredict), 
+    factor(test_data$voteintentionspain)
+)
+
+print("Training data matrix:")
+print(trainmatrix)
+print("Test data matrix:")
+print(testmatrix)
+
+# Extract the table from the confusionMatrix object
+test_conf_df <- as.data.frame(testmatrix$table)
+colnames(test_conf_df) <- c("Predicted", "Actual", "Freq")
+
+# Plot the heatmap
+ggplot(test_conf_df, aes(x = Actual, y = Predicted, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), size = 4) +
+  scale_fill_gradient(low = "lightblue", high = "darkblue") +
+  theme_minimal() +
+  labs(title = "K-NN Confusion Matrix; k = 3",
+       x = "Actual Class",
+       y = "Predicted Class")
+```
+
+```{r, warning = FALSE}
+## searching for the best k using accuracy in prediction as the metric -- defining function
+bestk = function(k){
+    modloop <- knn3(voteintentionspain ~ dhincome_all + female + nativism + msexism + femdemonstrate, data = train_data, k = k)
+    acc_test <- round(
+        as.numeric(
+            confusionMatrix( 
+                factor(predict(modloop, test_data, type="class")), 
+                factor(test_data$voteintentionspain))$overall[1]
+        ), 
+        6
+    )
+    return (acc_test)
+}
+```
+
+```{r, warning = FALSE}
+cv_acc = numeric()
+for (k in 1:100) {
+    cv_acc[k] = bestk(k)
+}
+```
+
+```{r}
+plot(1:100, cv_acc, xlab = 'Value of K', ylab = 'Accuracy', main = "KNN prediction accuracy for k = 1 to 100",
+     type = 'l', col = 'blue', lwd = 2)
+```
+
+```{r}
+best_k = 1
+best_acc = cv_acc[1]
+
+for (helper in 1:100) {
+    if (cv_acc[helper] > best_acc)
+        {
+            best_k = helper
+            best_acc = cv_acc[helper]
+        }
+}
+```
+
+```{r}
+best_k
+best_acc
+```
+
+```{r}
+## running best k model
+mod75 = knn3(voteintentionspain ~ dhincome_all + female + nativism + msexism + femdemonstrate, data = train_data, k = 75)
+
+## training & testing accuracies
+trainpredict75 = predict(mod75, train_data, type="class")
+testpredict75 = predict(mod75, test_data, type="class")
+
+trainmatrix75 = confusionMatrix( 
+    factor(trainpredict75), 
+    factor(train_data$voteintentionspain)
+)
+
+testmatrix75 = confusionMatrix( 
+    factor(testpredict75), 
+    factor(test_data$voteintentionspain)
+)
+
+print("Training data matrix:")
+print(trainmatrix75)
+print("Test data matrix:")
+print(testmatrix75)
+
+## heatmap for best k model
+# Extract the table from the confusionMatrix object
+test_conf_df75 <- as.data.frame(testmatrix75$table)
+colnames(test_conf_df75) <- c("Predicted", "Actual", "Freq")
+
+# Plot the heatmap
+ggplot(test_conf_df75, aes(x = Actual, y = Predicted, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), size = 4) +
+  scale_fill_gradient(low = "lightblue", high = "darkblue") +
+  theme_minimal() +
+  labs(title = "K-NN Confusion Matrix with highest accuracy; k = 75",
+       x = "Actual Class",
+       y = "Predicted Class")
+```
+
+```{r}
+## the first two should already be factors because of the data they're sourced from
+## the second two should remain numeric
+plotframe3 <- data.frame(preds = testpredict,
+                           tru = test_data$voteintentionspain,
+                           nat = test_data$nativism,
+                           sexism = test_data$msexism)
+
+plotframe3_named <- plotframe3 |> mutate(
+  preds = recode(preds, "1" = "PSOE", "2" = "PP", "3" = "Podemos", "4" = "Ciduadanos", "7" = "ERC", "23" = "Vox"),
+  tru = recode(tru, "1" = "PSOE", "2" = "PP", "3" = "Podemos", "4" = "Ciduadanos", "7" = "ERC", "23" = "Vox")
+  )
+
+plotframe75 <- data.frame(preds = testpredict75,
+                           tru = test_data$voteintentionspain,
+                           nat = test_data$nativism,
+                           sexism = test_data$msexism)
+
+plotframe75_named <- plotframe75 |> mutate(
+  preds = recode(preds, "1" = "PSOE", "2" = "PP", "3" = "Podemos", "4" = "Ciduadanos", "7" = "ERC", "23" = "Vox"),
+  tru = recode(tru, "1" = "PSOE", "2" = "PP", "3" = "Podemos", "4" = "Ciduadanos", "7" = "ERC", "23" = "Vox")
+  )
+```
+
+```{r}
+## scatterplot for knn where k = 3
+ggplot(plotframe3_named, aes(x = sexism, y = nat, color = tru)) +
+  geom_point(data = transform(plotframe3_named, preds = NULL), colour = "grey85") +
+  geom_point() +
+  facet_wrap(~preds) +
+  labs(title = "KNN-predicted vote intention by sexism and nationalism",
+       subtitle = "k = 3",
+       x = "Sexism",
+       y = "Nationalism",
+       color = "True vote intention")
+```
+
+```{r}
+## scatterplot for knn where k = 75, highest accuracy
+ggplot(plotframe75_named, aes(x = sexism, y = nat, color = tru)) +
+  geom_point(data = transform(plotframe75_named, preds = NULL), colour = "grey85") +
+  geom_point() +
+  facet_wrap(~preds) +
+  labs(title = "KNN-predicted vote intention by sexism and nationalism",
+       subtitle = "k = 75",
+       x = "Sexism",
+       y = "Nationalism",
+       color = "True vote intention")
+```

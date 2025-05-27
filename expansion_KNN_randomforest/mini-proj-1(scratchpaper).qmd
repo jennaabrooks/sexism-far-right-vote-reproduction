@@ -1,0 +1,576 @@
+---
+title: "Mini-Project 1: Demographic and Ideological Influence on Voter Intent in Spanish Elections"
+author: Group 4 - Sara Hamidi, Shirley Augustin, Jenna Brooks, Allison Park
+format: pdf
+editor: visual
+---
+
+# Introduction and Hypothesis
+
+Spain’s political system is highly pluralistic and decentralized, with over 20 active political parties. The major political parties reflect various stances on issues such as immigration and sexism which differentiate them across the political spectrum, with far right parties typically promoting anti-feminist and anti-immigrant rhetoric in much of their political discourse (Anduiza and Rico 2024) while other far left parties claim the opposite. We aim to answer the question: Can the beliefs of Spanish citizens regarding sexism and immigration be used to predict their voting intentions in the Spanish elections?
+
+In this project, we use Spanish Political Attitudes data to test methods for classifying respondents’ intentions to vote for 6 of the major Spanish political parties spanning from the far left to far right political spectrum (see Appendix A for details on Spain’s political spectrum). We hypothesize that methods such as k-nearest neighbors or random forest classifiers will be able to predict which party a respondent intends to vote for, using the survey response variables regarding political beliefs (nativism, sexism, and participation in Women’s Day protests) and demographic features (income and sex). 
+
+We expect parties on the far ends of the political spectrum to be easier to classify than center parties due to the mobilization of issues like sexism and immigration by more ideologically extreme parties to distinguish themselves and galvanize their voter base. By exploring the link between social attitudes and voting intentions, this study sheds light on the extent to which ideological polarization around issues like immigration and sexism influences party alignment in Spain's increasingly fragmented political landscape.
+
+# Methods
+
+We use data from the Spanish Political Attitudes dataset (Hernández Pérez et al. 2021). The survey uses a quota sampling method to ensure a representative sample of the Spanish adult population aged 18 to 56, with quotas based on gender, age, educational background, geographic region, and municipality size.  It also includes respondents’ answers to questions on sexism, voting intention, participation in feminist protests, and beliefs surrounding immigration. The raw data comprises 7,850 observations and the unit of analysis is individual voters in Spain. When cleaned to the parties of interest and after removing NA’s, the data contains 3,034 observations. 
+
+We focused on the following covariates: `dincome_all`, `female`, `nativism`, `msexism`, and `femdemonstrate` with `voteintentionspain` of the 6 parties of interest as the dependent variable which we aim to classify. Our motivation behind including these covariates in particular align with our hypothesis that there is a correlation between people’s ideological beliefs and their political party affiliations. Moreover, we also include income as a demographic variable to assess whether gender and economic status influence party affiliation.
+
+Within the `voteintentionspain` variable, the six political parties that we chose are:  the following: 
+
+(numbers 1-23 indicate how they are coded in the data) 
+
+-   1 - PSOE ( Center Left )
+
+-   2 - PP ( Center Right )
+
+-   3 - Podemos ( Far Left )
+
+-   4 - Ciduadanos ( Centrist )
+
+-   7 - ERC ( Catalonia )
+
+-   23 - Vox ( Far Right )
+
+Next, we explored the data distribution and it became clear that upon evaluation of the data distribution, there is a significant class imbalance among the political parties, with the PSOE party having 30% of the observations, followed closely by Ciduadanos ( 22.5% ) and Podemos ( 19.6% ) with the other three trailing far behind. Therein lies a challenge in producing a successful classification model: having a class that reflects 30% of the observations but another class that represents only 5.6%. Inevitably, this would lead to higher prediction rates for the majority class versus significantly less predictions for the minority classes. \
+
+```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+library(randomForest)
+library(tidyverse)
+library(caret)
+library(ggplot2)
+```
+
+```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+library(dplyr)
+library(reshape2) 
+library (nnet)
+
+
+# used for PROC (testing out the ROC Curve with current models)
+library(pROC) # Compute roc
+library(ROCR)
+library(MASS)
+library(caret)
+```
+
+```{r, echo=FALSE}
+
+df <- read.csv("df_clean.csv")
+
+df <- df |> 
+  mutate(
+    voteintentionspain = factor(voteintentionspain),
+    edu3 = factor(edu3),
+    female = factor(female),
+    femdemonstrate = factor(femdemonstrate)
+  )
+
+
+# Create a proportion table as a data frame
+df %>%
+  count(voteintentionspain) %>%
+  mutate(percentage = n / sum(n) * 100) %>%
+  ggplot(aes(x = reorder(voteintentionspain, -percentage), y = percentage)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  geom_text(aes(label = sprintf("%.1f%%", percentage)), 
+            vjust = -0.5, size = 4) +
+  labs(title = "Distribution of Vote Intentions",
+       x = "Vote Intention",
+       y = NULL) +
+  scale_x_discrete(labels = c(
+    "1" = "PSOE",
+    "2" = "PP",
+    "3" = "Podemos",
+    "4" = "Ciduadanos",
+    "7" = "ERC",
+    "23" = "VOX"
+  )) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  coord_cartesian(ylim = c(0, 35))
+
+```
+
+Our main objective is to predict which party a person intends to vote for, based on their demographics  and other ideological standpoints. Our main computational methods involve experimenting  with various classifiers such as K-Nearest Neighbors, random forests, and multinomial regression. KNN was chosen because it is non-parametric and can easily capture nonlinear relationships, since political attitudes often cluster spatially in feature space as people with similar beliefs vote similarly. Random forests similarly handle non-linearity well and offer feature importance metrics, which are helpful for interpreting which beliefs/demographics most influence vote intention. Multinomial regression is used as a baseline approach, assuming a linear relationship between variables.
+
+To gain preliminary insights into how well we may be able to classify a voter’s political party affiliation based on the covariates above, we chose to run a multinomial regression. After fitting this model, we then conducted both an in-sample evaluation using a train vs. test set partition and calculated a correlation matrix and prediction accuracy, which we found to be about 40%. However, the issue with just fitting a multinomial logistic regression was that the output is probabilistic, rather than classification based. For our motives, we want a model that is robust, to avoid overfitting and that is able to identify complex relationships between variables. Because of this, we chose to run a Random Forest with the same covariates.
+
+We hoped that the robustness of a random forest and the decision tree algorithm would be more insightful in identifying which variables are most influential in making predictions — the key to our questions regarding the influence of ideology on political party affiliation.
+
+Once we ran our random forest, we then looked at its prediction accuracy in a confusion matrix, and to go even further, we plotted a variable importance plot to identify which features are most important in classifying voter’s intent. Through these insights, it became clear that the variables most influential are: sexism and nativism – aligning with our hypothesis that ideology influences voter intentions. 
+
+Although the random forest performed similarly to the multinomial regression model in terms of prediction accuracy, we also decided to try a K-NN model to see whether the proximity-based logic of k-nearest neighbors would pick up on the potential clustering of voters with similar ideological preferences. If our hypothesis is true and the do covariates cluster around the same voter intentions, this model would be able to leverage these insights and make better classification predictions. This model was also favorable because it provided class-based insights into sensitivity and specificity. 
+
+# Results
+
+## Random Forest
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+dat <- read.csv("df_clean.csv")
+
+dat <- dat |> 
+  mutate(
+    voteintentionspain = factor(voteintentionspain),
+    edu3 = factor(edu3),
+    female = factor(female),
+    femdemonstrate = factor(femdemonstrate)
+  )
+
+
+## 80-20 train-test split, partitioned with caret
+set.seed(123)
+train_idx <- createDataPartition(dat$voteintentionspain, p = 0.8, list = FALSE)
+train_data <- dat[train_idx, ]
+test_data <- dat[-train_idx, ]
+
+
+# Make sure voteintentionspain is a factor
+train_data$voteintentionspain <- as.factor(train_data$voteintentionspain)
+
+# Fit the model
+rf_model <- randomForest(voteintentionspain ~ dhincome_all + female + 
+                           nativism + msexism + femdemonstrate,
+                         data = train_data,
+                         ntree = 500,           # Number of trees
+                         mtry = 3,              # Number of variables tried at each split (default = sqrt(p))
+                         importance = TRUE)     # Enables variable importance measures
+
+# Predict on test set
+preds <- predict(rf_model, newdata = test_data)
+
+# Create confusion matrix
+conf_mat <- table(Predicted = preds, Actual = test_data$voteintentionspain)
+
+# Calculate accuracy
+accuracy <- sum(diag(conf_mat)) / sum(conf_mat)
+#print(paste("Accuracy:", round(accuracy * 100, 2), "%"))
+
+# "Accuracy: 35.37 %"
+
+```
+
+```{r, echo=FALSE}
+
+# Convert confusion matrix to data frame for ggplot
+conf_df <- as.data.frame(conf_mat)
+colnames(conf_df) <- c("Predicted", "Actual", "Freq")
+
+# Plot heatmap
+ggplot(conf_df, aes(x = Actual, y = Predicted, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), size = 4) +
+  scale_fill_gradient(low = "lightblue", high = "darkblue") +
+  theme_minimal() +
+  labs(title = "Random Forest Confusion Matrix",
+       x = "Actual Class",
+       y = "Predicted Class")
+
+```
+
+```{r, echo=FALSE}
+
+varImpPlot(rf_model)
+```
+
+The random forest model, with 500 trees and considering three variables at each split, achieved an accuracy of 37.5% on the portion of our data reserved for testing the models. This accuracy is at least twice better than chance (random decision between one of six parties being approximately 16%). We then examined the relative importance of the variables included in the random forest using the randomForest package’s variable importance plot. This plot visualizes both the mean decrease in accuracy when a variable is randomized into noise and the mean decrease in Gini impurity index when a variable is considered at split. The variable measuring sexism is rated the highest importance given both these measures; the variable measuring nativism is rated second most important considering the mean decrease in accuracy and third most important when considering Gini impurity decreases. Sexism and nativism being the most important pieces of information when categorizing voter intention implicitly reflects the original authors’ study, where they examined the effect of sexism on intent to vote for the far right party Vox.
+
+While the random forest model is not reliably accurate, its information regarding importance of variables is still useful when continuing to analysis of the KNN models.
+
+## K-Nearest Neighbors
+
+```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+
+
+dat <- read.csv("df_clean.csv")
+dat <- dat |> 
+  mutate(
+    voteintentionspain = factor(voteintentionspain),
+    edu3 = factor(edu3),
+    female = factor(female),
+    femdemonstrate = factor(femdemonstrate)
+  )
+
+## 80-20 train-test split, partitioned with caret
+set.seed(123)
+train_idx <- createDataPartition(dat$voteintentionspain, p = 0.8, list = FALSE)
+train_datat <- dat[train_idx, ]
+test_datat <- dat[-train_idx, ]
+
+train_data <- train_datat |> mutate(
+  voteintentionspain = recode(voteintentionspain, "1" = "PSOE", "2" = "PP", "3" = "Podemos", "4" = "Ciduadanos", "7" = "ERC", "23" = "Vox")
+)
+
+test_data <- test_datat |> mutate(
+   voteintentionspain = recode(voteintentionspain, "1" = "PSOE", "2" = "PP", "3" = "Podemos", "4" = "Ciduadanos", "7" = "ERC", "23" = "Vox")
+)
+
+## create model over training data, starting with 3-nearest neighbors
+## excluding education also
+mod = knn3(voteintentionspain ~ dhincome_all + female + nativism + msexism + femdemonstrate, data = train_data, k = 3)
+mod
+
+trainpredict = predict(mod, train_data, type="class")
+testpredict = predict(mod, test_data, type="class")
+
+
+trainmatrix = confusionMatrix( 
+    factor(trainpredict), 
+    factor(train_data$voteintentionspain)
+)
+
+testmatrix = confusionMatrix( 
+    factor(testpredict), 
+    factor(test_data$voteintentionspain)
+)
+
+print("Training data matrix:")
+print(trainmatrix)
+print("Test data matrix:")
+print(testmatrix)
+
+#referenced (tutorial from github)\[<https://daviddalpiaz.github.io/stat432sp18/supp/knn_class_r.html>\]
+
+
+```
+
+```{r, echo=FALSE}
+
+
+# Extract the table from the confusionMatrix object
+test_conf_df <- as.data.frame(testmatrix$table)
+colnames(test_conf_df) <- c("Predicted", "Actual", "Freq")
+
+# Plot the heatmap
+ggplot(test_conf_df, aes(x = Actual, y = Predicted, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), size = 4) +
+  scale_fill_gradient(low = "lightblue", high = "darkblue") +
+  theme_minimal() +
+  labs(title = "K-NN Confusion Matrix k = 3",
+       x = "Actual Class",
+       y = "Predicted Class")
+
+```
+
+```{r, warning=FALSE, echo=FALSE}
+
+## searching for the best k using accuracy in prediction as the metric -- defining function
+bestk = function(k){
+    modloop <- knn3(voteintentionspain ~ dhincome_all + female + nativism + msexism + femdemonstrate, data = train_data, k = k)
+    acc_test <- round(
+        as.numeric(
+            confusionMatrix( 
+                factor(predict(modloop, test_data, type="class")), 
+                factor(test_data$voteintentionspain))$overall[1]
+        ), 
+        6
+    )
+    return (acc_test)
+}
+```
+
+```{r, warning=FALSE, echo=FALSE}
+
+cv_acc = numeric()
+for (k in 1:100) {
+    cv_acc[k] = bestk(k)
+}
+```
+
+```{r, echo=FALSE}
+
+plot(1:100, cv_acc, xlab = 'Value of K', ylab = 'Accuracy', main = "KNN prediction accuracy for k = 1 to 100",
+     type = 'l', col = 'blue', lwd = 2)
+```
+
+```{r, echo=FALSE, results='hide'}
+
+best_k = 1
+best_acc = cv_acc[1]
+
+for (helper in 1:100) {
+    if (cv_acc[helper] > best_acc)
+        {
+            best_k = helper
+            best_acc = cv_acc[helper]
+        }
+}
+
+best_k
+best_acc
+```
+
+```{r, echo=FALSE, results='hide', warning=FALSE}
+
+## running best k model
+mod75 = knn3(voteintentionspain ~ dhincome_all + female + nativism + msexism + femdemonstrate, data = train_data, k = 75)
+
+## training & testing accuracies
+trainpredict75 = predict(mod75, train_data, type="class")
+testpredict75 = predict(mod75, test_data, type="class")
+
+trainmatrix75 = confusionMatrix( 
+    factor(trainpredict75), 
+    factor(train_data$voteintentionspain)
+)
+
+testmatrix75 = confusionMatrix( 
+    factor(testpredict75), 
+    factor(test_data$voteintentionspain)
+)
+
+print("Training data matrix:")
+print(trainmatrix75)
+print("Test data matrix:")
+print(testmatrix75)
+
+
+```
+
+```{r, echo=FALSE, warning=FALSE}
+
+## heatmap for best k model
+# Extract the table from the confusionMatrix object
+test_conf_df75 <- as.data.frame(testmatrix75$table)
+colnames(test_conf_df75) <- c("Predicted", "Actual", "Freq")
+
+# Plot the heatmap
+ggplot(test_conf_df75, aes(x = Actual, y = Predicted, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), size = 4) +
+  scale_fill_gradient(low = "lightblue", high = "darkblue") +
+  theme_minimal() +
+  labs(title = "K-NN Confusion Matrix with highest accuracy; k = 75",
+       x = "Actual Class",
+       y = "Predicted Class")
+```
+
+```{r, echo=FALSE}
+
+plotframe3 <- data.frame(preds = testpredict,
+                           tru = test_data$voteintentionspain,
+                           nat = test_data$nativism,
+                           sexism = test_data$msexism)
+
+plotframe3_named <- plotframe3 |> mutate(
+  preds = recode(preds, "1" = "PSOE", "2" = "PP", "3" = "Podemos", "4" = "Ciduadanos", "7" = "ERC", "23" = "Vox"),
+  tru = recode(tru, "1" = "PSOE", "2" = "PP", "3" = "Podemos", "4" = "Ciduadanos", "7" = "ERC", "23" = "Vox")
+  )
+
+plotframe75 <- data.frame(preds = testpredict75,
+                           tru = test_data$voteintentionspain,
+                           nat = test_data$nativism,
+                           sexism = test_data$msexism)
+
+plotframe75_named <- plotframe75 |> mutate(
+  preds = recode(preds, "1" = "PSOE", "2" = "PP", "3" = "Podemos", "4" = "Ciduadanos", "7" = "ERC", "23" = "Vox"),
+  tru = recode(tru, "1" = "PSOE", "2" = "PP", "3" = "Podemos", "4" = "Ciduadanos", "7" = "ERC", "23" = "Vox")
+  )
+```
+
+```{r, echo=FALSE}
+
+ggplot(plotframe3_named, aes(x = sexism, y = nat, color = tru)) +
+  geom_point(data = transform(plotframe3_named, preds = NULL), colour = "grey85") +
+  geom_point() +
+  facet_wrap(~preds) +
+  labs(title = "KNN-predicted vote intention by sexism and nativism",
+       subtitle = "k = 3",
+       x = "Sexism",
+       y = "Nativism",
+       color = "True vote intention")
+```
+
+```{r, echo=FALSE}
+
+## scatterplot for knn where k = 75, highest accuracy
+ggplot(plotframe75_named, aes(x = sexism, y = nat, color = tru)) +
+  geom_point(data = transform(plotframe75_named, preds = NULL), colour = "grey85") +
+  geom_point() +
+  facet_wrap(~preds) +
+  labs(title = "KNN-predicted vote intention by sexism and nativism",
+       subtitle = "k = 75",
+       x = "Sexism",
+       y = "Nativism",
+       color = "True vote intention")
+```
+
+We first modeled a “baseline” KNN where k = 3, achieving an accuracy of 33.3% on the test set, before tuning the hyperparameter k. The best k was defined as the k that produces the highest overall accuracy on the test data; after iterating over k = 1 to 100, the best value of k was found to be 75, with an accuracy of 39.7%. Similarly to the random forest, both models perform about twice as well as chance, but not so well that they could be considered accurate when predicting vote intention.
+
+Within a 6% increase in accuracy there is a shift in the models’ predictive patterns. 
+
+```{r}
+# chunk to test out the ROC and AUC curve - currently using stack overflow as a resource
+
+# KNN ROC
+test_probs <- predict(mod, test_data, type = "prob")
+test_labels <- factor(test_data$voteintentionspain, levels = c("PSOE", "PP", "Podemos", "Ciduadanos", "ERC", "Vox"))
+
+roc_knn <- multiclass.roc(test_labels, test_probs, levels=c("PSOE", "PP", "Podemos", "Ciduadanos", "ERC", "Vox"))
+print(roc_knn)
+
+# KNN ROC K = 75
+test_probs_75 <- predict(mod75, test_data, type = "prob")
+test_labels_75 <- factor(test_data$voteintentionspain, levels = c("PSOE", "PP", "Podemos", "Ciduadanos", "ERC", "Vox"))
+
+roc_knn75 <- multiclass.roc(test_labels_75, test_probs_75, levels=c("PSOE", "PP", "Podemos", "Ciduadanos", "ERC", "Vox"))
+print(roc_knn75)
+
+# RF ROC
+
+test_probs_rf <- predict(rf_model, test_data, type = "prob")
+colnames(test_probs_rf) <- c("PSOE", "PP", "Podemos", "Ciduadanos", "ERC", "Vox")
+test_labels_rf <- factor(test_data$voteintentionspain, levels = c("PSOE", "PP", "Podemos", "Ciduadanos", "ERC", "Vox"))
+
+roc_RF <- multiclass.roc(test_labels_rf, test_probs_rf, levels = c("PSOE", "PP", "Podemos", "Ciduadanos", "ERC", "Vox"))
+print(roc_RF)
+
+# using: https://stackoverflow.com/questions/72511152/how-to-create-multiple-roc-curves-on-the-same-plot-for-multi-roc-objects-3-cl
+
+```
+
+```{r}
+# Plotting
+
+Knn_flat <- unlist(roc_knn$rocs, recursive = FALSE)
+Knn75_flat <- unlist(roc_knn75$rocs, recursive = FALSE)
+RF_flat <- unlist(roc_RF$rocs, recursive = FALSE)
+
+# Start the plot with the first KNN ROC curve
+plot(Knn_flat[[1]], col = "red", lwd = 1.7, main = "KNN and RF ROC Curves")
+
+# Add KNN75 curve
+plot(Knn75_flat[[1]], add = TRUE, col = "magenta", lwd = 1.7)
+
+# Add RF ROC curve
+plot(RF_flat[[1]], add = TRUE, col = "blue", lwd = 1.7)
+
+
+# Insert a legend
+legend("bottomright", legend = c("KNN AUC = 0.6413","KNN 75 AUC = 0.7111",
+                                 "Random Forest AUC = 0.6942"), 
+                          lty = c(1, 1, 1), 
+                          col =c("red", "magenta","blue"), cex=0.6, lwd=1.5, inset = 0.05,
+                                  title = "ROC Curves")
+                          par(mfrow = c(1, 1))
+
+```
+
+```{r}
+par(mfrow = c(2, 3), oma = c(0, 0, 3, 0)) 
+classes = c("PSOE", "PP", "Podemos", "Ciduadanos", "ERC", "Vox")
+
+for (cls in classes) {
+  bin_knn <- ifelse(test_labels == cls, 1, 0)
+  bin_knn75 <- ifelse(test_labels_75 == cls, 1, 0)
+  bin_rf  <- ifelse(test_labels_rf == cls, 1, 0)
+
+  roc_knn_cls <- roc(bin_knn, test_probs[, cls])
+  roc_knn75_cls <- roc(bin_knn75, test_probs_75[, cls])
+  roc_rf_cls  <- roc(bin_rf, test_probs_rf[, cls])
+
+  plot(roc_knn_cls, col = "red", lwd = 2, main = paste("ROC:", cls))
+  plot(roc_knn75_cls, add = TRUE, col = "magenta", lwd = 2)
+  plot(roc_rf_cls, add = TRUE, col = "blue", lwd = 2)
+  legend("bottomright", 
+         legend = c(
+           paste("KNN AUC =", round(auc(roc_knn_cls), 2)),
+           paste("KNN 75 AUC =", round(auc(roc_knn75_cls), 2)),
+           paste("RF AUC =", round(auc(roc_rf_cls), 2))),
+         col = c("red", "magenta", "blue"), 
+         lwd = 2, cex = 0.7)
+}
+
+mtext( "ROC Curves by Model and Party", outer = TRUE, cex = 1, line = 0)
+
+
+# more on the legend: https://stackoverflow.com/questions/75722676/make-a-legend-for-a-roc-curve-with-colors
+```
+
+# Discussion
+
+# References
+
+Anduiza, Eva, and Guillem Rico. 2024. "Sexism and the Far-Right Vote: The Individual Dynamics of Gender Backlash." American Journal of Political Science 68 (2): 478–493.<https://doi.org/10.1111/ajps.12759>.
+
+Hernández Pérez, Enrique, Eva Anduiza Perea, Carol Galais González, Guillem Rico Camps, Jordi Muñoz Mendoza, María José Hierro Hernández, Roberto Pannico, Berta Barbet Porta, and Dani Marinova. 2021. “POLAT Project: Spanish Political Attitudes Panel Dataset (Waves 1–6).” Universitat Autònoma de Barcelona.<https://ddd.uab.cat/record/243399> (accessed September 13, 2021).
+
+## Data
+
+Anduiza, Eva, and Guillem Rico. 2022. Replication Data for: Sexism and the Far-Right Vote: The Individual Dynamics of Gender Backlash. Harvard Dataverse.<https://doi.org/10.7910/DVN/A11CD5>.
+
+## Appendix
+
+### Baseline Multinomial Regression Model
+
+#Multinomial Regression
+
+```{r}
+#Model 1 - Basic multinomial model 
+mnl.fit <- multinom(voteintentionspain ~ dhincome_all + female + nativism + msexism + femdemonstrate , Hess=T, model=T, data=df, maxit=200) #model
+
+summary(mnl.fit)
+
+set.seed(123) 
+train_idx <- createDataPartition(df$voteintentionspain, p = 0.8, list = FALSE)
+train_data <- df[train_idx, ]
+test_data <- df[-train_idx, ]
+
+# Fit model on training data
+mod1 <- multinom(voteintentionspain ~ dhincome_all + 
+                    nativism + msexism + femdemonstrate,
+                    Hess = TRUE, model = TRUE, data = train_data, maxit = 200)
+
+# Step 4: Predict on test data
+pred_class <- predict(mnl.fit, newdata = test_data)
+
+# Step 5: Evaluate accuracy
+confusion_matrix <- table(Predicted = pred_class, Actual = test_data$voteintentionspain)
+accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+
+print(confusion_matrix)
+print(paste("Accuracy:", round(accuracy, 3)))
+
+
+#This model is predicting 1 (PSOE) a lot more than the other categories. Why might this be? 
+#Accuracy 40.9 % 
+```
+
+```{r, echo=FALSE}
+
+df$voteintentionspain <- as.factor(df$voteintentionspain)
+
+
+# Define training control with 5-fold CV
+train_control <- trainControl(method = "cv", number = 10)
+
+# Train the multinomial model using caret's train()
+
+cv_model <- train(voteintentionspain ~ dhincome_all + 
+                    nativism + msexism + femdemonstrate,
+  data = df,
+  method = "multinom",
+  trControl = train_control,
+  MaxNWts = 10000,
+  trace = FALSE
+)
+
+# View results
+print(cv_model)
+
+# Confusion Matrix
+confusion_matrix <- table(Predicted = pred_class, Actual = test_data$voteintentionspain)
+
+# Calculate accuracy
+accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+
+print(confusion_matrix)
+print(paste("Accuracy:", round(accuracy, 3)))
+
+#accuracy very slightly improved performance 37.7% 
+```
