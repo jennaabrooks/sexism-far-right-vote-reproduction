@@ -12,6 +12,8 @@ In this reproduction, I replicate the authors' main findings using a logistic re
 
 - `cleaned.csv` – Cleaned dataset derived from the Spanish Political Attitudes Survey (2019 & 2020 waves) - Stata license was needed to replicate directly from the authors replication_code_1.do. 
 - `FINAL_sexism_farright.qmd` – Quarto file containing code and narrative analysis
+- `FINAL_sexism_farright.pdf` - Final write up
+- `
 
 - Figures:
   - Histogram of intended Vox votes
@@ -20,6 +22,9 @@ In this reproduction, I replicate the authors' main findings using a logistic re
 ## Data Source
 
 The dataset is derived from the **Spanish Political Attitudes Survey** (Hernández Pérez et al., 2021), a longitudinal online panel survey of Spanish adults (ages 18–56). Only the 2019 and 2020 waves are analyzed in this study to capture the emergence of Vox as a viable far-right party.
+
+The original replication data can be found [**HERE on Dataverse**](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/A11CD5).
+
 
 ## Key Variables
 
