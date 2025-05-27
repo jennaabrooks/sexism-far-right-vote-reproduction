@@ -12,6 +12,14 @@ This project investigates whether the beliefs of Spanish citizens regarding sexi
 We used survey data from the *Spanish Political Attitudes* dataset to classify respondents’ voting intentions for six major political parties using demographic and ideological indicators. Our main hypothesis was that far-left and far-right parties, which tend to mobilize polarizing issues, would be easier to classify than centrist parties.
 
 ---
+## Files 
+- `mini-proj-1.qmd` is a Quarto document containing the code and final write up 
+- `df_clean.csv` contains variables of interest and 6 political parties of interest
+- `knn_model.qmd` is a Quarto document containing K Nearest Neighbors (KNN) initial analysis
+- `multinomial_regression.rdm` is an R studio file exploring multinomial regression analysis
+- `Project Proposal.pdf` is a pdf containing the initial project proposal with appendix with more information on 6 political parties of interest
+- `Replication Data` folder contains the original data from the authors, original paper, and code book for survey responses
+
 
 ## Dataset
 
