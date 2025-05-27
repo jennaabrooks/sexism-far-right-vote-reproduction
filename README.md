@@ -23,7 +23,7 @@ In this reproduction, I replicate the authors' main findings using a logistic re
 
 The dataset is derived from the **Spanish Political Attitudes Survey** (Hernández Pérez et al., 2021), a longitudinal online panel survey of Spanish adults (ages 18–56). Only the 2019 and 2020 waves are analyzed in this study to capture the emergence of Vox as a viable far-right party.
 
-The original replication data can be found [**HERE on Dataverse**](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/A11CD5).
+The original replication data can be found [**HERE on Dataverse**](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/A11CD5) or under `dataverse_files`.
 
 
 ## Key Variables
