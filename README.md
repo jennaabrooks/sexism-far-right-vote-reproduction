@@ -13,7 +13,7 @@ In this reproduction, I replicate the authors' main findings using a logistic re
 - `cleaned.csv` – Cleaned dataset derived from the Spanish Political Attitudes Survey (2019 & 2020 waves) - Stata license was needed to replicate directly from the authors replication_code_1.do. 
 - `FINAL_sexism_farright.qmd` – Quarto file containing code and narrative analysis
 - `FINAL_sexism_farright.pdf` - Final write up
-- `
+
 
 - Figures:
   - Histogram of intended Vox votes
