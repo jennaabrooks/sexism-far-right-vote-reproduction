@@ -39,7 +39,7 @@ data <- read.csv("~/Documents/GitHub/sexismfarrightvote/cleaned.csv")
 
 ```{r echo = F}
 #| message: FALSE
-# Load required packages (install using `install.packages()`ibrary(tidyverse)
+# Load required packages (install using `install.packages()`ary(tidyverse)
 library(ragg)
 library(ggridges)
 library(ggrepel)
@@ -51,6 +51,18 @@ library(dplyr)
 library(broom)
 library(corrplot)
 library(haven)
+library(dplyr)
+library(tidyr)
+```
+
+```{r}
+# How many observations for each intent to vote in the data set? 
+# I want to count how many 1s, 2s, 3s, 4s, 7s, 23s, in the column voteintentionspain from df data
+data %>%
+  filter(voteintentionspain %in% c(1, 2, 3, 4, 7, 23)) %>%
+  count(voteintentionspain) %>%
+  complete(voteintentionspain = c(1, 2, 3, 4, 7, 23), fill = list(n = 0))
+
 ```
 
 ```{r}
@@ -172,7 +184,7 @@ stargazer(t1m2, t1prob2, t1cloglog2, type = "text",
           out = "model_comparison.txt")
 ```
 
-## In Sample Performance 
+## In Sample Performance
 
 As shown in Table 2, the logit model outperforms both the probit and cloglog models. The logit model has the lowest AIC value, which suggests better in-sample performance. The cloglog model ranks second in terms of AIC, while the probit model ranks third for in- sample performance, however the relative difference in performance is negligible, as seen in the ROC plot (Table 3). The AUC values in Table 3 are the same, indicating similar performance. Furthermore, the logit model achieves the highest log-likelihood value, further confirming its better performance. These results indicate that the original logit model is the most effective among the three for this dataset.
 
@@ -333,11 +345,11 @@ legend("bottomright", legend = c(paste("Logit (AUC =", round(auc(roc_logit), 3))
 
 ```
 
-## The Best Model 
+## The Best Model
 
 The best model for both in sample and out of sample performance is the authors' originial logit model. This makes me more confident in their analysis and conclusions they made showing increased sexism makes a person more likely to vote for far-right party Vox.
 
-# Expansion 
+# Expansion
 
 ## Scenario Construction
 
@@ -434,7 +446,7 @@ legend("topright", legend = c("Male", "Female"), col = c("blue", "red"), lwd = 2
 
 Table 5 illustrates that as sexism increases, the predicted probability of voting for Vox rises slightly. This finding aligns with the authors' original conclusions that sexism influences support for right-wing parties, though the effect appears less pronounced. The male (blue) and female (red) lines are nearly identical, indicating that modern sexism has a similar effect on voting behavior for both genders. This aligns with the authors original findings that gender did not play a significant role in a vote for Vox due to the low coefficient value. For low levels of msexism (close to 0), the predicted probability of voting Vox is very close to zero for both males and females. Therefore, we can interpret sexism as a predictor for voting for Vox, but gender does not significantly moderate this effect. Males and females with the same level of `msexism` have nearly the same probability of voting for Vox.
 
-# Conclusion 
+# Conclusion
 
 Overall, the replication process strengthens confidence in the authors' conclusions. The original findings are robust to changes in model specification, and the additional analyses provide further insights into the relationship between sexism and far-right voting behavior. Future research may expand on these findings by considering longitudinal trends, interactions with other ideological factors, or examining the role of sexism in different political contexts. This study underscores the importance of attitudinal predictors in understanding far-right support and highlights the need for continued exploration of gendered political dynamics.
 
